@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bolso em Dia — meus gastos</title>
+<meta name="description" content="Entenda seus gastos mensais de forma simples. Seus dados ficam só no seu celular.">
+<meta name="theme-color" content="#0e9f6e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">🐷 Bolso em Dia</div>
+  <div class="mes-nav">
+    <button id="mesAnt" aria-label="Mês anterior">←</button>
+    <strong id="mesAtual">—</strong>
+    <button id="mesProx" aria-label="Próximo mês">→</button>
+  </div>
+</header>
+
+<main>
+  <!-- ═══ INÍCIO ═══ -->
+  <section id="aba-inicio" class="aba ativa">
+    <div id="semDados" class="card destaque" hidden>
+      <h2>👋 Vamos começar?</h2>
+      <p>Importe o PDF do seu extrato do Mercado Pago e eu organizo tudo para você — direto no seu celular, sem enviar nada para ninguém.</p>
+      <button class="btn primario grande" data-importar>📄 Importar meu extrato (PDF)</button>
+      <button class="btn texto" id="btnManualVazio">ou adicionar um gasto manualmente</button>
+    </div>
+
+    <div id="resumoWrap">
+      <div class="cards-resumo">
+        <div class="card mini"><span>Entrou</span><strong id="rEntrou" class="verde">R$ 0</strong></div>
+        <div class="card mini"><span>Saiu</span><strong id="rSaiu" class="vermelho">R$ 0</strong></div>
+        <div class="card mini"><span>Sobrou</span><strong id="rSobrou">R$ 0</strong></div>
+      </div>
+      <p id="resumoFrase" class="frase-resumo"></p>
+
+      <div class="card">
+        <h3>Para onde foi o dinheiro</h3>
+        <div class="grafico-wrap">
+          <canvas id="graficoRosca" width="180" height="180"></canvas>
+          <div id="legendaRosca" class="legenda"></div>
+        </div>
+        <div id="listaCategorias"></div>
+      </div>
+
+      <div class="card" id="cardSaldo">
+        <h3>Seu saldo ao longo do mês</h3>
+        <canvas id="graficoSaldo" height="120"></canvas>
+        <p id="saldoFrase" class="nota"></p>
+      </div>
+
+      <div class="card">
+        <h3>💡 O que eu reparei</h3>
+        <ul id="listaInsights" class="insights"></ul>
+      </div>
+
+      <div class="card">
+        <h3>🔝 Maiores gastos do mês</h3>
+        <div id="topGastos"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ GASTOS ═══ -->
+  <section id="aba-gastos" class="aba">
+    <input id="busca" type="search" placeholder="🔎 Buscar (ex.: mercado, uber, nome...)">
+    <div id="chipsCategorias" class="chips"></div>
+    <div id="listaTransacoes"></div>
+  </section>
+
+  <!-- ═══ PLANEJAR ═══ -->
+  <section id="aba-planejar" class="aba">
+    <div class="card">
+      <h3>💼 Minha renda por mês</h3>
+      <p class="nota">Quanto entra normalmente (salário + extras). Uso isso para calcular quanto dá para gastar.</p>
+      <div class="linha-input">
+        <span>R$</span>
+        <input id="inputRenda" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
+        <button class="btn primario" id="btnSalvarRenda">Salvar</button>
+      </div>
+      <div id="podeGastar" class="pode-gastar"></div>
+      <div class="regra503020" id="regra503020"></div>
+    </div>
+
+    <div class="card">
+      <h3>📌 Contas fixas</h3>
+      <p class="nota">Aquelas que chegam todo mês. Total: <strong id="totalFixas">R$ 0</strong></p>
+      <div id="listaFixas"></div>
+      <div id="sugestoesFixas"></div>
+      <form id="formFixa" class="form-fixa">
+        <input name="nome" placeholder="Nome (ex.: Internet)" required>
+        <input name="valor" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Valor R$" required>
+        <input name="dia" type="number" min="1" max="31" placeholder="Dia">
+        <button class="btn primario" type="submit">+ Adicionar</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>🎯 Limite por categoria</h3>
+      <p class="nota">Defina um teto mensal e acompanhe a Barrinha. Toque no valor para mudar.</p>
+      <div id="listaMetas"></div>
+    </div>
+  </section>
+
+  <!-- ═══ MAIS ═══ -->
+  <section id="aba-mais" class="aba">
+    <div class="card">
+      <h3>📥 Importar extrato novo</h3>
+      <p>No Mercado Pago: <em>Extrato → escolher o mês → baixar PDF</em>. Depois toque abaixo e escolha o arquivo. Pode escolher vários meses de uma vez.</p>
+      <button class="btn primario grande" data-importar>📄 Importar PDF do Mercado Pago</button>
+      <p id="statusImport" class="nota"></p>
+    </div>
+
+    <div class="card">
+      <h3>📱 Colocar na tela inicial</h3>
+      <p><strong>Android (Chrome):</strong> menu ⋮ → <em>“Instalar app”</em> ou <em>“Adicionar à tela inicial”</em>.</p>
+      <p><strong>iPhone (Safari):</strong> botão compartilhar → <em>“Adicionar à Tela de Início”</em>.</p>
+      <p class="nota">Depois ele funciona como app normal, até sem internet.</p>
+    </div>
+
+    <div class="card">
+      <h3>💾 Backup dos meus dados</h3>
+      <p class="nota">Os dados ficam <strong>só neste aparelho</strong>. Faça backup de vez em quando e guarde o arquivo (ex.: no seu e-mail ou Google Drive).</p>
+      <button class="btn" id="btnExportar">⬇️ Baixar backup</button>
+      <button class="btn" id="btnImportarBackup">⬆️ Restaurar backup</button>
+      <input type="file" id="inputBackup" accept="application/json" hidden>
+    </div>
+
+    <div class="card">
+      <h3>🔒 Privacidade</h3>
+      <p>Nenhum dado sai do seu celular: sem conta, sem nuvem, sem propaganda. O extrato em PDF é lido aqui dentro do próprio aparelho.</p>
+    </div>
+
+    <div class="card perigo">
+      <h3>🗑️ Apagar tudo</h3>
+      <p class="nota">Remove todas as transações e configurações deste aparelho.</p>
+      <button class="btn perigo" id="btnApagarTudo">Apagar todos os dados</button>
+    </div>
+  </section>
+</main>
+
+<button id="fab" aria-label="Adicionar">+</button>
+
+<nav class="bottom-nav">
+  <button data-aba="inicio" class="ativa">🏠<span>Início</span></button>
+  <button data-aba="gastos">🧾<span>Gastos</span></button>
+  <button data-aba="planejar">🎯<span>Planejar</span></button>
+  <button data-aba="mais">⚙️<span>Mais</span></button>
+</nav>
+
+<!-- Ficha de transação / adicionar -->
+<div id="fundoSheet" hidden></div>
+<div id="sheet" hidden>
+  <div id="sheetConteudo"></div>
+</div>
+
+<input type="file" id="inputPdf" accept="application/pdf" multiple hidden>
+
+<script src="app.js"></script>
+</body>
+</html>

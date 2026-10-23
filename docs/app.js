@@ -1,0 +1,655 @@
+/* ════════════════════════════════════════════════════════════════
+   Bolso em Dia — entenda e planeje seus gastos.
+   100% no seu aparelho: os dados ficam no localStorage deste celular.
+   ════════════════════════════════════════════════════════════════ */
+"use strict";
+
+/* ---------- categorias ---------- */
+const CATS = {
+  cartao:        { nome: "Cartão de crédito",      emoji: "💳", cor: "#8e44ad" },
+  bancos:        { nome: "Banco / parcelas",        emoji: "🏦", cor: "#7f8c8d" },
+  mercado:       { nome: "Supermercado",            emoji: "🛒", cor: "#27ae60" },
+  comida:        { nome: "Alimentação",             emoji: "🍽️", cor: "#e67e22" },
+  farmacia:      { nome: "Farmácia / saúde",        emoji: "💊", cor: "#e84393" },
+  transporte:    { nome: "Transporte",              emoji: "🚗", cor: "#2980b9" },
+  contas:        { nome: "Contas (internet, tel.)", emoji: "📄", cor: "#16a085" },
+  compras:       { nome: "Compras",                 emoji: "🛍️", cor: "#d35400" },
+  vestuario:     { nome: "Roupas",                  emoji: "👕", cor: "#9b59b6" },
+  lazer:         { nome: "Lazer",                   emoji: "🎉", cor: "#f39c12" },
+  pessoas:       { nome: "Pix p/ pessoas",          emoji: "👥", cor: "#c0392b" },
+  reserva:       { nome: "Reserva (guardado)",      emoji: "🐷", cor: "#0e9f6e" },
+  transferencia: { nome: "p/ minha outra conta",    emoji: "🔁", cor: "#95a5a6" },
+  outros:        { nome: "Outros",                  emoji: "📦", cor: "#b2bec3" },
+  renda:         { nome: "Renda / salário",         emoji: "💼", cor: "#0e9f6e" },
+  pix_recebido:  { nome: "Pix recebido",            emoji: "🤝", cor: "#2ecc71" },
+  rendimentos:   { nome: "Rendimentos",             emoji: "📈", cor: "#1abc9c" },
+};
+const CATS_SAIDA = ["mercado","comida","cartao","contas","transporte","farmacia","compras","vestuario","lazer","bancos","pessoas","reserva","transferencia","outros"];
+const CATS_ENTRADA = ["renda","pix_recebido","rendimentos","reserva","transferencia","outros"];
+
+/* ---------- utilidades ---------- */
+const $ = (s) => document.querySelector(s);
+const fmt = (v) => (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const semAcento = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase();
+const mesDe = (dataISO) => dataISO.slice(0, 7); // "2026-09-01" -> "2026-09"
+const nomeMes = (m) => { const [a, mm] = m.split("-").map(Number);
+  return new Date(a, mm - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+/** Extrai o "nome" de uma descrição do extrato (sem "Pix enviado", "Pagamento..." etc.) */
+function extrairNome(desc) {
+  if (/fatura.*cartão/i.test(desc || "")) return "Fatura do cartão de crédito";
+  return (desc || "")
+    .replace(/^(Pagamento com QR Pix|Pagamento com Pix|Pagamento com código QR|Pagamento|Pix enviado|Pix recebido|Transferência (enviada|recebida)|Reembolso de transferência enviada)\s+/i, "")
+    .replace(/\s+\d{11}$/, "") // CPF grudado no fim de alguns nomes
+    .trim();
+}
+
+/* ---------- categorização automática ---------- */
+function categorizar(desc, valor) {
+  const d = semAcento(desc);
+  if (d.includes("minhas economias".toUpperCase())) return "reserva";
+  if (/UBER|99 TECNOLOGIA/.test(d)) return "transporte";
+  if (d.includes("RENDIMENTOS")) return "rendimentos";
+  if (d.includes("FATURA") && d.includes("cartao".toUpperCase())) return "cartao";
+  const meuNome = d.includes("DOUGLAS ROBERTO NUNES DE LIMA");
+  if (valor > 0) {
+    if (d.startsWith("TRANSFERENCIA RECEBIDA") || d.includes("AROM SOLUCOES")) return "renda";
+    if (d.includes("REEMBOLSO")) return "rendimentos";
+    if (meuNome) return "transferencia";
+    return "pix_recebido";
+  }
+  if (meuNome) return "transferencia";
+  if (/SANTANDER|NU PAGAMENTOS|LEBI MARQUES/.test(d)) return "bancos";
+  if (/SUPERMERCADO|SUPERALVO|MUFFATO|MERCADO MOOR|MERCEARIA|MERCADINHO|PAGAMENTO DIA\b/.test(d)) return "mercado";
+  if (/BUFFET|ALIMENTOS|IFood|IFOOD|Rappi|RESTAURANTE|LANCHONETE|PIZZA/.test(d)) return "comida";
+  if (/FARMACIA|PANVEL|NISSEI|CLAMED|DROGARIA|DROGASIL|RAIA/.test(d)) return "farmacia";
+  if (/GIGA MAIS|FIBRA|CORREIOS CELULAR|TABELIONATO|NETFLIX|SPOTIFY|COPEL|SANEPAR|CLARO|VIVO|TIM\b/.test(d)) return "contas";
+  if (/CONFECCOES|RENNER|C&A|RIACHUELO/.test(d)) return "vestuario";
+  if (/MERCADO LIBRE|TUNA PAGAMENTOS|PAGSEGURO|PAGHIPER|BOM NEGOCIO|COSMETICOS|PRESENTES|CONSTRUCAO|AMAZON|SHOPEE|SHEIN|ALIEXPRESS/.test(d)) return "compras";
+  if (/FUTSAL|CINEMA|INGRESSO/.test(d)) return "lazer";
+  if (d.startsWith("PIX ENVIADO")) return "pessoas";
+  return "outros";
+}
+
+/* ---------- estado (salvo só neste aparelho) ---------- */
+const salvar = (chave, valor) => localStorage.setItem("Bolso." + chave, JSON.stringify(valor));
+const ler = (chave, padrao) => { try { return JSON.parse(localStorage.getItem("Bolso." + chave)) ?? padrao; } catch { return padrao; } };
+
+let transacoes = ler("tx", []);          // [{id,data,descricao,valor,saldo?,categoria,origem}]
+let metas = ler("metas", {});            // {cat: limiteMensal}
+let fixas = ler("fixas", []);            // [{nome,valor,dia}]
+let regras = ler("regras", {});          // {nome normalizado: categoria} — aprendido com você
+let cfg = ler("cfg", { renda: 0 });
+let mesSel = ler("mesSel", null);
+let filtroCat = "todas", termoBusca = "";
+
+function salvarTudo() { salvar("tx", transacoes); salvar("metas", metas); salvar("fixas", fixas); salvar("regras", regras); salvar("cfg", cfg); if (mesSel) salvar("mesSel", mesSel); }
+
+function catDe(t) {
+  const chave = semAcento(extrairNome(t.descricao));
+  return regras[chave] || t.categoria || categorizar(t.descricao, t.valor);
+}
+
+/* ---------- agregações ---------- */
+function mesesDisponiveis() {
+  const s = new Set(transacoes.map((t) => mesDe(t.data)));
+  const agora = new Date();
+  s.add(`${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`);
+  return [...s].sort();
+}
+function doMes(mes) { return transacoes.filter((t) => mesDe(t.data) === mes); }
+/** "gasto de verdade": não conta reserva (é dinheiro guardado) nem transferência entre contas próprias */
+const ehGasto = (t) => t.valor < 0 && !["reserva", "transferencia"].includes(catDe(t));
+const ehRenda = (t) => t.valor > 0 && catDe(t) !== "transferencia" && catDe(t) !== "reserva";
+
+function somarCats(lista, predicado) {
+  const mapa = {};
+  for (const t of lista) {
+    if (!predicado(t)) continue;
+    const c = catDe(t);
+    mapa[c] = mapa[c] || { total: 0, n: 0 };
+    mapa[c].total += t.valor; mapa[c].n++;
+  }
+  return mapa;
+}
+
+/** Detecta gastos que se repetem (mesmo nome em 2+ meses ou 2+ vezes com mesmo valor) */
+function detectarRecorrentes() {
+  const porNome = {};
+  for (const t of transacoes) {
+    if (t.valor >= 0 || ["reserva", "rendimentos", "transferencia", "cartao"].includes(catDe(t))) continue;
+    const nome = extrairNome(t.descricao);
+    const chave = semAcento(nome);
+    (porNome[chave] = porNome[chave] || { nome, meses: new Set(), valores: [], dias: [] });
+    porNome[chave].meses.add(mesDe(t.data));
+    porNome[chave].valores.push(Math.abs(t.valor));
+    porNome[chave].dias.push(Number(t.data.slice(8)));
+  }
+  return Object.values(porNome)
+    .filter((r) => r.meses.size >= 2 || r.valores.length >= 3)
+    .map((r) => ({
+      nome: r.nome,
+      valor: Math.round((r.valores.reduce((a, b) => a + b, 0) / r.valores.length) * 100) / 100,
+      dia: r.dias.sort((a, b) => a - b)[Math.floor(r.dias.length / 2)],
+      vezes: r.valores.length,
+    }))
+    .sort((a, b) => b.valor - a.valor);
+}
+
+/* ---------- insights em português simples ---------- */
+function gerarInsights(mes, mesAnterior) {
+  const dicas = [];
+  const tx = doMes(mes);
+  const entrou = tx.filter((t) => t.valor > 0).reduce((s, t) => s + t.valor, 0);
+  const saiu = tx.filter(ehGasto).reduce((s, t) => s + Math.abs(t.valor), 0);
+  const porCat = somarCats(tx, ehGasto);
+
+  if (porCat.cartao && entrou > 0) {
+    const pct = Math.round((Math.abs(porCat.cartao.total) / entrou) * 100);
+    dicas.push(`💳 A fatura do cartão levou <strong>${fmt(Math.abs(porCat.cartao.total))}</strong> — <strong>${pct}% de tudo que entrou</strong> no mês.` +
+      (pct >= 50 ? " Quando o cartão passa da metade da renda, o mês inteiro fica apertado. Vale olhar o que está dentro dessa fatura." : ""));
+  }
+  const guardadoBruto = tx.filter((t) => catDe(t) === "reserva" && t.valor < 0).reduce((s, t) => s + Math.abs(t.valor), 0);
+  const retiradoReserva = tx.filter((t) => catDe(t) === "reserva" && t.valor > 0).reduce((s, t) => s + t.valor, 0);
+  const nReservas = tx.filter((t) => catDe(t) === "reserva" && t.valor < 0).length;
+  if (nReservas > 0) dicas.push(`🐷 Você guardou <strong>${fmt(guardadoBruto)}</strong> sem perceber (${nReservas} reservinhas automáticas)${retiradoReserva ? ` e retirou ${fmt(retiradoReserva)} de volta` : ""}. Esse hábito é ouro — continue!`);
+  const pixPessoas = tx.filter((t) => ehRenda(t) && catDe(t) === "pix_recebido").reduce((s, t) => s + t.valor, 0);
+  if (pixPessoas > 0 && entrou > 0)
+    dicas.push(`🤝 <strong>${fmt(pixPessoas)}</strong> entraram por Pix de pessoas (${Math.round((pixPessoas / entrou) * 100)}% das entradas). Sem isso, o mês fecharia em <strong>${fmt(entrou - pixPessoas - saiu)}</strong>. Bom saber para planejar o próximo.`);
+  const comSaldo = tx.filter((t) => typeof t.saldo === "number");
+  if (comSaldo.length > 5) {
+    const apertados = comSaldo.filter((t) => t.saldo < 50).length;
+    const menor = Math.min(...comSaldo.map((t) => t.saldo));
+    if (menor < 50) dicas.push(`📉 Em <strong>${apertados} momentos</strong> do mês seu saldo ficou abaixo de R$ 50 (menor: ${fmt(menor)}). Separar as contas fixas logo que o dinheiro entra ajuda a não zerar.`);
+  }
+  const formiga = tx.filter((t) => ehGasto(t) && Math.abs(t.valor) <= 20);
+  if (formiga.length >= 5)
+    dicas.push(`🐜 Foram <strong>${formiga.length} gastos pequenos</strong> (até R$ 20) somando <strong>${fmt(formiga.reduce((s, t) => s + Math.abs(t.valor), 0))}</strong>. Sozinhos parecem nada, juntos pesam.`);
+  if (mesAnterior) {
+    const ant = somarCats(doMes(mesAnterior), ehGasto);
+    let pior = null;
+    for (const [c, v] of Object.entries(porCat)) {
+      const antes = Math.abs(ant[c]?.total || 0), agora = Math.abs(v.total);
+      if (antes > 50 && agora > antes * 1.3 && (!pior || agora - antes > pior.diff)) pior = { c, antes, agora, diff: agora - antes };
+    }
+    if (pior) dicas.push(`📊 <strong>${CATS[pior.c].nome}</strong> subiu bastante: de ${fmt(pior.antes)} para <strong>${fmt(pior.agora)}</strong> (+${fmt(pior.diff)} vs. mês anterior).`);
+    else if (saiu > 0) {
+      const saiuAnt = doMes(mesAnterior).filter(ehGasto).reduce((s, t) => s + Math.abs(t.valor), 0);
+      if (saiuAnt > 0) {
+        const d = Math.round(((saiu - saiuAnt) / saiuAnt) * 100);
+        dicas.push(d <= 0
+          ? `👏 Você gastou <strong>${Math.abs(d)}% a menos</strong> que no mês anterior (${fmt(saiu)} contra ${fmt(saiuAnt)}). Continue assim!`
+          : `📊 No total, os gastos ficaram <strong>${d}% maiores</strong> que no mês anterior (${fmt(saiu)} contra ${fmt(saiuAnt)}).`);
+      }
+    }
+  }
+  const rec = detectarRecorrentes().filter((r) => r.valor >= 80 && !fixas.some((f) => semAcento(f.nome) === semAcento(r.nome)));
+  if (rec.length) dicas.push(`📌 <strong>${esc(rec[0].nome)}</strong> (${fmt(rec[0].valor)}) aparece todo mês. Veja na aba <em>Planejar</em> para transformar em conta fixa — assim você já conta com ele no orçamento.`);
+  if (!dicas.length) dicas.push("Quando houver mais movimentações, eu destaco aqui os pontos mais importantes do mês. 🙂");
+  return dicas;
+}
+
+/* ---------- desenhos (gráficos) ---------- */
+function desenharRosca(canvas, porCat) {
+  const ctx = canvas.getContext("2d");
+  const itens = Object.entries(porCat).map(([c, v]) => ({ c, valor: Math.abs(v.total) })).filter((i) => i.valor > 0).sort((a, b) => b.valor - a.valor);
+  const total = itens.reduce((s, i) => s + i.valor, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!total) return itens;
+  let ang = -Math.PI / 2;
+  const cx = canvas.width / 2, cy = canvas.height / 2, r = Math.min(cx, cy) - 6;
+  for (const i of itens) {
+    const fatia = (i.valor / total) * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, ang, ang + fatia); ctx.closePath();
+    ctx.fillStyle = CATS[i.c].cor; ctx.fill();
+    ang += fatia;
+  }
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+  return itens;
+}
+
+function desenharSaldo(canvas, tx) {
+  const comSaldo = tx.filter((t) => typeof t.saldo === "number").sort((a, b) => a.data.localeCompare(b.data));
+  const card = $("#cardSaldo");
+  if (comSaldo.length < 3) { card.style.display = "none"; return; }
+  card.style.display = "";
+  canvas.width = canvas.clientWidth * devicePixelRatio || 600;
+  canvas.height = 120 * devicePixelRatio;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height, pad = 8 * devicePixelRatio;
+  const max = Math.max(...comSaldo.map((t) => t.saldo)), min = Math.min(0, ...comSaldo.map((t) => t.saldo));
+  const X = (i) => pad + (i / (comSaldo.length - 1)) * (W - 2 * pad);
+  const Y = (v) => H - pad - ((v - min) / ((max - min) || 1)) * (H - 2 * pad);
+  ctx.strokeStyle = "#e05252"; ctx.setLineDash([5, 5]); ctx.lineWidth = devicePixelRatio;
+  ctx.beginPath(); ctx.moveTo(pad, Y(50)); ctx.lineTo(W - pad, Y(50)); ctx.stroke(); ctx.setLineDash([]);
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, "rgba(14,159,110,.45)"); grad.addColorStop(1, "rgba(14,159,110,.02)");
+  ctx.beginPath(); comSaldo.forEach((t, i) => i ? ctx.lineTo(X(i), Y(t.saldo)) : ctx.moveTo(X(i), Y(t.saldo)));
+  ctx.strokeStyle = "#0e9f6e"; ctx.lineWidth = 2 * devicePixelRatio; ctx.stroke();
+  ctx.lineTo(X(comSaldo.length - 1), H - pad); ctx.lineTo(X(0), H - pad); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  const menor = Math.min(...comSaldo.map((t) => t.saldo));
+  $("#saldoFrase").textContent = `Maior saldo: ${fmt(max)} · menor: ${fmt(menor)} · linha tracejada = R$ 50 (zona de aperto)`;
+}
+
+/* ---------- telas ---------- */
+function toast(msg) {
+  document.querySelector(".toast")?.remove();
+  const el = document.createElement("div"); el.className = "toast"; el.innerHTML = msg;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 4200);
+}
+
+function txHTML(t) {
+  const c = catDe(t);
+  const sinal = t.valor < 0 ? "−" : "+";
+  return `<div class="tx" data-id="${esc(t._uid)}">
+    <div class="emoji">${CATS[c].emoji}</div>
+    <div class="meio"><div class="desc">${esc(extrairNome(t.descricao) || t.descricao)}</div>
+    <div class="sub">${CATS[c].nome} · ${t.data.slice(8)}/${t.data.slice(5, 7)}</div></div>
+    <div class="valor ${t.valor < 0 ? "vermelho" : "verde"}">${sinal} ${fmt(Math.abs(t.valor))}</div></div>`;
+}
+
+function renderInicio() {
+  const tx = doMes(mesSel);
+  $("#semDados").hidden = transacoes.length > 0;
+  $("#resumoWrap").style.display = transacoes.length ? "" : "none";
+  // Cartões = totais brutos, iguais ao extrato (para conferir com o PDF).
+  // Nos gráficos de categorias, reserva e transferências entre contas próprias ficam de fora.
+  const entrou = tx.filter((t) => t.valor > 0).reduce((s, t) => s + t.valor, 0);
+  const saiu = tx.filter((t) => t.valor < 0).reduce((s, t) => s + Math.abs(t.valor), 0);
+  $("#rEntrou").textContent = fmt(entrou);
+  $("#rSaiu").textContent = fmt(saiu);
+  const sobrou = entrou - saiu;
+  const el = $("#rSobrou"); el.textContent = fmt(sobrou); el.className = sobrou >= 0 ? "verde" : "vermelho";
+  $("#resumoFrase").textContent = entrou === 0 && saiu === 0
+    ? "Nenhuma movimentação neste mês ainda."
+    : sobrou >= 0
+      ? `Em ${nomeMes(mesSel)}, no total, sobrou dinheiro na conta. 🎉`
+      : `Em ${nomeMes(mesSel)} saiu ${fmt(Math.abs(sobrou))} a mais do que entrou. Veja abaixo onde apertou.`;
+
+  const porCat = somarCats(tx, ehGasto);
+  const meses = mesesDisponiveis();
+  const mesAnt = meses[meses.indexOf(mesSel) - 1];
+  const ant = mesAnt ? somarCats(doMes(mesAnt), ehGasto) : {};
+  const itens = desenharRosca($("#graficoRosca"), porCat);
+  const total = itens.reduce((s, i) => s + i.valor, 0) || 1;
+  $("#legendaRosca").innerHTML = itens.slice(0, 6).map((i) =>
+    `<div><span class="bolinha" style="background:${CATS[i.c].cor}"></span>${CATS[i.c].emoji} ${CATS[i.c].nome} — <strong>${Math.round((i.valor / total) * 100)}%</strong></div>`).join("");
+  $("#listaCategorias").innerHTML = itens.map((i) => {
+    const antes = Math.abs(ant[i.c]?.total || 0);
+    const delta = antes > 0 ? `<span class="delta">${i.valor > antes ? "▲" : "▼"} ${fmt(Math.abs(i.valor - antes))} vs mês passado</span>` : "";
+    return `<div class="cat-linha"><div class="cat-topo"><span>${CATS[i.c].emoji} ${CATS[i.c].nome}${delta}</span><strong>${fmt(i.valor)}</strong></div>
+      <div class="barra"><i style="width:${Math.max(3, (i.valor / total) * 100)}%;background:${CATS[i.c].cor}"></i></div></div>`;
+  }).join("") || `<p class="vazio">Sem gastos neste mês.</p>`;
+
+  desenharSaldo($("#graficoSaldo"), tx);
+  $("#listaInsights").innerHTML = gerarInsights(mesSel, mesAnt).map((d) => `<li>${d}</li>`).join("");
+  const top = tx.filter(ehGasto).sort((a, b) => a.valor - b.valor).slice(0, 5);
+  $("#topGastos").innerHTML = top.map(txHTML).join("") || `<p class="vazio">—</p>`;
+}
+
+function renderGastos() {
+  const catsUsadas = ["todas", ...new Set(doMes(mesSel).map(catDe))];
+  $("#chipsCategorias").innerHTML = catsUsadas.map((c) =>
+    `<button class="chip ${filtroCat === c ? "ativo" : ""}" data-chip="${c}">${c === "todas" ? "Todas" : CATS[c].emoji + " " + CATS[c].nome}</button>`).join("");
+  let lista = doMes(mesSel).slice().sort((a, b) => b.data.localeCompare(a.data) || String(b.id).localeCompare(String(a.id)));
+  if (filtroCat !== "todas") lista = lista.filter((t) => catDe(t) === filtroCat);
+  if (termoBusca) lista = lista.filter((t) => semAcento(t.descricao).includes(semAcento(termoBusca)));
+  if (!lista.length) { $("#listaTransacoes").innerHTML = `<p class="vazio">Nada por aqui neste mês. 🙌</p>`; return; }
+  let html = "", diaAtual = "";
+  for (const t of lista) {
+    if (t.data !== diaAtual) {
+      diaAtual = t.data;
+      const [a, m, d] = t.data.split("-").map(Number);
+      html += `<div class="dia-titulo">${new Date(a, m - 1, d).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</div>`;
+    }
+    html += txHTML(t);
+  }
+  $("#listaTransacoes").innerHTML = html;
+}
+
+function rendaSugerida() {
+  const meses = mesesDisponiveis().filter((m) => doMes(m).some((t) => ehRenda(t) && catDe(t) === "renda"));
+  if (!meses.length) return 0;
+  const soma = meses.reduce((s, m) => s + doMes(m).filter((t) => catDe(t) === "renda").reduce((a, t) => a + t.valor, 0), 0);
+  return Math.round(soma / meses.length);
+}
+
+function renderPlanejar() {
+  if (!cfg.renda) { cfg.renda = rendaSugerida(); }
+  $("#inputRenda").value = cfg.renda || "";
+  const totalFixas = fixas.reduce((s, f) => s + Number(f.valor || 0), 0);
+  $("#totalFixas").textContent = fmt(totalFixas);
+  $("#listaFixas").innerHTML = fixas.map((f, i) =>
+    `<div class="fixa"><div><strong>${esc(f.nome)}</strong><small>${f.dia ? "todo dia " + f.dia : "todo mês"}</small></div>
+     <div><strong>${fmt(Number(f.valor))}</strong> <button class="x" data-del-fixa="${i}" aria-label="Remover">✕</button></div></div>`).join("")
+    || `<p class="vazio">Nenhuma conta fixa ainda. Adicione abaixo ou aceite uma sugestão. 👇</p>`;
+
+  const sugs = detectarRecorrentes().filter((r) => !fixas.some((f) => semAcento(f.nome) === semAcento(r.nome))).slice(0, 4);
+  $("#sugestoesFixas").innerHTML = sugs.map((r, i) =>
+    `<div class="sugestao">🔎 Notei que <strong>${esc(r.nome)}</strong> (${fmt(r.valor)}, por volta do dia ${r.dia}) se repete (${r.vezes}×). É uma conta fixa?
+     <br><button class="btn primario" data-add-sug="${i}">Sim, adicionar</button></div>`).join("");
+  $("#sugestoesFixas").dataset.json = JSON.stringify(sugs);
+
+  // pode gastar por dia (mês atual real)
+  const hoje = new Date();
+  const mesAtualReal = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+  const txMes = doMes(mesAtualReal);
+  const jaGastou = txMes.filter(ehGasto).reduce((s, t) => s + Math.abs(t.valor), 0);
+  const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  const diasRestantes = Math.max(1, ultimoDia - hoje.getDate() + 1);
+  const entrouEsteMes = txMes.filter((t) => t.valor > 0).reduce((s, t) => s + t.valor, 0);
+  const base = Math.max(cfg.renda || 0, entrouEsteMes); // se já entrou mais que a renda típica, uso o que entrou
+  const livre = base - jaGastou;
+  $("#podeGastar").innerHTML = !cfg.renda
+    ? `<span class="nota">Preencha sua renda para eu calcular quanto dá para gastar por dia.</span>`
+    : livre > 0
+      ? `Neste mês já gastou <strong>${fmt(jaGastou)}</strong>. Contando com o que já entrou (${fmt(base)}), ainda dá para gastar<span class="grande-num">${fmt(livre / diasRestantes)} por dia</span>até o fim do mês sem ficar no vermelho${totalFixas ? ` — lembre das contas fixas (${fmt(totalFixas)})` : ""}.`
+      : `⚠️ Neste mês já gastou <strong>${fmt(jaGastou)}</strong>, acima dos ${fmt(base)} que entraram. Segure os gastos variáveis até a próxima entrada.`;
+
+  if (cfg.renda) {
+    const r = cfg.renda;
+    $("#regra503020").innerHTML =
+      `<div style="flex:5;background:#0e9f6e">Essencial<br>${fmt(r * .5)}</div>
+       <div style="flex:3;background:#e6a817">Lazer/desejos<br>${fmt(r * .3)}</div>
+       <div style="flex:2;background:#2980b9">Guardar<br>${fmt(r * .2)}</div>`;
+    $("#regra503020").title = "Sugestão simples 50/30/20";
+  }
+
+  // metas
+  const porCat = somarCats(doMes(mesSel), ehGasto);
+  const catsComAlgo = [...new Set([...CATS_SAIDA.filter((c) => porCat[c] || metas[c])])];
+  $("#listaMetas").innerHTML = catsComAlgo.map((c) => {
+    const gasto = Math.abs(porCat[c]?.total || 0);
+    const limite = Number(metas[c] || 0);
+    const pct = limite ? Math.min(100, (gasto / limite) * 100) : 0;
+    const classe = limite && gasto > limite ? "estourou" : limite && gasto > limite * 0.8 ? "alerta" : "";
+    return `<div class="meta-linha"><div class="meta-topo"><span>${CATS[c].emoji} ${CATS[c].nome}</span>
+      <span>${fmt(gasto)} de <button class="meta-valor" data-meta="${c}">${limite ? fmt(limite) : "definir limite"}</button></span></div>
+      ${limite ? `<div class="barra"><i class="${classe}" style="width:${pct}%"></i></div>` : ""}</div>`;
+  }).join("");
+}
+
+function render() {
+  $("#mesAtual").textContent = nomeMes(mesSel);
+  renderInicio(); renderGastos(); renderPlanejar();
+}
+
+/* ---------- interações ---------- */
+document.querySelector(".bottom-nav").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-aba]"); if (!b) return;
+  document.querySelectorAll(".bottom-nav button").forEach((x) => x.classList.toggle("ativa", x === b));
+  document.querySelectorAll(".aba").forEach((x) => x.classList.toggle("ativa", x.id === "aba-" + b.dataset.aba));
+  window.scrollTo({ top: 0 });
+});
+function irParaAba(nome) { document.querySelector(`[data-aba="${nome}"]`).click(); }
+
+function mudarMes(dir) {
+  const meses = mesesDisponiveis();
+  const i = meses.indexOf(mesSel);
+  const novo = meses[i + dir];
+  if (novo) { mesSel = novo; salvarTudo(); render(); }
+}
+$("#mesAnt").onclick = () => mudarMes(-1);
+$("#mesProx").onclick = () => mudarMes(1);
+$("#busca").addEventListener("input", (e) => { termoBusca = e.target.value; renderGastos(); });
+$("#chipsCategorias").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-chip]"); if (!b) return;
+  filtroCat = b.dataset.chip; renderGastos();
+});
+
+/* Sheet (ficha da transação / adicionar) */
+function abrirSheet(html) { $("#sheetConteudo").innerHTML = html; $("#fundoSheet").hidden = false; $("#sheet").hidden = false; }
+function fecharSheet() { $("#fundoSheet").hidden = true; $("#sheet").hidden = true; }
+$("#fundoSheet").onclick = fecharSheet;
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest(".tx[data-id]");
+  if (el) { const t = transacoes.find((x) => x._uid === el.dataset.id); if (t) abrirFicha(t); }
+  const imp = e.target.closest("[data-importar]");
+  if (imp) $("#inputPdf").click();
+});
+
+function gradeCatsHTML(selecionada, tipo) {
+  const lista = tipo === "entrada" ? CATS_ENTRADA : CATS_SAIDA;
+  return `<div class="grade-cats">${lista.map((c) =>
+    `<button type="button" data-cat-escolha="${c}" class="${c === selecionada ? "sel" : ""}">${CATS[c].emoji}<br>${CATS[c].nome}</button>`).join("")}</div>`;
+}
+
+function abrirFicha(t) {
+  const nome = extrairNome(t.descricao) || t.descricao;
+  abrirSheet(`
+    <h3>${esc(nome)}</h3>
+    <p class="nota">${t.data.split("-").reverse().join("/")} · <strong class="${t.valor < 0 ? "vermelho" : "verde"}">${fmt(t.valor)}</strong></p>
+    <p>Está na categoria certa? Se trocar, eu aprendo e já acerto da próxima vez. 🧠</p>
+    ${gradeCatsHTML(catDe(t), t.valor > 0 ? "entrada" : "saida")}
+    <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn primario" id="fichaOk" style="flex:1">Pronto</button>
+      <button class="btn perigo" id="fichaExcluir">Excluir</button>
+    </div>`);
+  $("#sheetConteudo").querySelectorAll("[data-cat-escolha]").forEach((b) => b.onclick = () => {
+    document.querySelectorAll("[data-cat-escolha]").forEach((x) => x.classList.toggle("sel", x === b));
+    regras[semAcento(nome)] = b.dataset.catEscolha;
+    t.categoria = b.dataset.catEscolha;
+    salvarTudo(); render();
+    toast(`✅ Categorizei “${esc(nome)}” como <strong>${CATS[b.dataset.catEscolha].nome}</strong> (e vou lembrar nas próximas).`);
+  });
+  $("#fichaOk").onclick = fecharSheet;
+  $("#fichaExcluir").onclick = () => {
+    if (confirm("Excluir esta movimentação?")) {
+      transacoes = transacoes.filter((x) => x !== t); salvarTudo(); fecharSheet(); render(); toast("Movimentação excluída.");
+    }
+  };
+}
+
+function abrirAdicionar() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  let tipo = "saida", catSel = "mercado";
+  abrirSheet(`
+    <h3>Adicionar movimentação</h3>
+    <div class="tipo-toggle">
+      <button type="button" id="tipoSaida" class="sel-saida">💸 Gastar</button>
+      <button type="button" id="tipoEntrada">💰 Receber</button>
+    </div>
+    <label>Quanto? (R$)</label><input type="number" id="novoValor" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
+    <label>O que é?</label><input type="text" id="novaDesc" placeholder="Ex.: Padaria, Salário, Pix da mãe...">
+    <label>Quando?</label><input type="date" id="novaData" value="${hoje}">
+    <label>Categoria</label><div id="gradeNova">${gradeCatsHTML(catSel, "saida")}</div>
+    <button class="btn primario grande" id="btnSalvarNovo" style="margin-top:16px">Salvar</button>`);
+  const ligarGrade = () => $("#gradeNova").querySelectorAll("[data-cat-escolha]").forEach((b) => b.onclick = () => {
+    catSel = b.dataset.catEscolha;
+    $("#gradeNova").querySelectorAll("[data-cat-escolha]").forEach((x) => x.classList.toggle("sel", x === b));
+  });
+  ligarGrade();
+  const setTipo = (tp) => {
+    tipo = tp; catSel = tp === "entrada" ? "renda" : "mercado";
+    $("#tipoSaida").className = tp === "saida" ? "sel-saida" : "";
+    $("#tipoEntrada").className = tp === "entrada" ? "sel-entrada" : "";
+    $("#gradeNova").innerHTML = gradeCatsHTML(catSel, tp); ligarGrade();
+  };
+  $("#tipoSaida").onclick = () => setTipo("saida");
+  $("#tipoEntrada").onclick = () => setTipo("entrada");
+  $("#btnSalvarNovo").onclick = () => {
+    const v = parseFloat($("#novoValor").value);
+    const desc = $("#novaDesc").value.trim();
+    if (!v || v <= 0 || !desc) { toast("Preencha o valor e o que é 🙂"); return; }
+    transacoes.push({
+      id: "manual-" + Date.now(), _uid: "u" + Date.now() + Math.random().toString(36).slice(2, 7),
+      data: $("#novaData").value || hoje, descricao: desc,
+      valor: tipo === "saida" ? -v : v, categoria: catSel, origem: "manual",
+    });
+    mesSel = mesDe($("#novaData").value || hoje);
+    salvarTudo(); fecharSheet(); render(); toast("✅ Salvo!");
+  };
+}
+$("#fab").onclick = abrirAdicionar;
+$("#btnManualVazio").onclick = abrirAdicionar;
+
+/* Planejar: eventos */
+$("#btnSalvarRenda").onclick = () => {
+  cfg.renda = parseFloat($("#inputRenda").value) || 0; salvarTudo(); renderPlanejar(); toast("✅ Renda salva: " + fmt(cfg.renda) + "/mês");
+};
+$("#formFixa").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  fixas.push({ nome: String(f.get("nome")), valor: parseFloat(f.get("valor")) || 0, dia: parseInt(f.get("dia")) || null });
+  e.target.reset(); salvarTudo(); renderPlanejar(); toast("📌 Conta fixa adicionada!");
+});
+$("#aba-planejar").addEventListener("click", (e) => {
+  const del = e.target.closest("[data-del-fixa]");
+  if (del) { fixas.splice(Number(del.dataset.delFixa), 1); salvarTudo(); renderPlanejar(); }
+  const sug = e.target.closest("[data-add-sug]");
+  if (sug) {
+    const sugs = JSON.parse($("#sugestoesFixas").dataset.json || "[]");
+    const r = sugs[Number(sug.dataset.addSug)];
+    if (r) { fixas.push({ nome: r.nome, valor: r.valor, dia: r.dia }); salvarTudo(); renderPlanejar(); toast("📌 Adicionado às contas fixas!"); }
+  }
+  const meta = e.target.closest("[data-meta]");
+  if (meta) {
+    const c = meta.dataset.meta;
+    const atual = metas[c] || "";
+    const resp = prompt(`Limite mensal para ${CATS[c].emoji} ${CATS[c].nome} (R$). Deixe vazio para remover:`, atual);
+    if (resp === null) return;
+    const v = parseFloat(String(resp).replace(",", "."));
+    if (v > 0) metas[c] = v; else delete metas[c];
+    salvarTudo(); renderPlanejar();
+  }
+});
+
+/* Backup / apagar */
+$("#btnExportar").onclick = () => {
+  const dados = JSON.stringify({ transacoes, metas, fixas, regras, cfg }, null, 1);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([dados], { type: "application/json" }));
+  a.download = "backup-bolso-em-dia.json"; a.click(); URL.revokeObjectURL(a.href);
+  toast("⬇️ Backup baixado. Guarde em lugar seguro!");
+};
+$("#btnImportarBackup").onclick = () => $("#inputBackup").click();
+$("#inputBackup").addEventListener("change", async (e) => {
+  try {
+    const dados = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(dados.transacoes)) throw new Error("formato");
+    transacoes = dados.transacoes; metas = dados.metas || {}; fixas = dados.fixas || [];
+    regras = dados.regras || {}; cfg = dados.cfg || { renda: 0 };
+    preparar(); salvarTudo(); render(); irParaAba("inicio");
+    toast("✅ Backup restaurado!");
+  } catch { toast("⚠️ Não consegui ler esse arquivo de backup."); }
+  e.target.value = "";
+});
+$("#btnApagarTudo").onclick = () => {
+  if (confirm("Tem certeza? Isso apaga TODAS as transações deste aparelho (faça backup antes!).") && confirm("Confirma mesmo?")) {
+    ["tx", "metas", "fixas", "regras", "cfg", "mesSel", "seedOk"].forEach((c) => localStorage.removeItem("Bolso." + c));
+    location.reload();
+  }
+};
+
+/* ---------- importar PDF do Mercado Pago (lido no próprio aparelho) ---------- */
+let pdfjsOK = null;
+function carregarPdfJs() {
+  if (pdfjsOK) return pdfjsOK;
+  pdfjsOK = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; resolve(); };
+    s.onerror = () => reject(new Error("sem internet para carregar o leitor de PDF"));
+    document.head.appendChild(s);
+  });
+  return pdfjsOK;
+}
+
+function parsearTextoExtrato(textoBruto) {
+  let texto = textoBruto;
+  const boilerplate = [
+    /EXTRATO DE CONTA/g, /DETALHE DOS MOVIMENTOS/g, /Data\s+Descrição\s+ID da operação\s+Valor\s+Saldo/g,
+    /Saldo final: R\$ -?[\d.,]+/g, /Saldo inicial: R\$ -?[\d.,]+/g, /Entradas: R\$ -?[\d.,]+/g, /Saidas: R\$ -?[\d.,]+/g,
+    /\b\d+\/\d+\b/g, /Data de geração:[^\n]*/g, /Você tem alguma dúvida\?[\s\S]*?mercadopago\.com\.br/g,
+    /CPF\/CNPJ:[^\n]*/g, /Agência:[^\n]*/g, /Conta:[^\n]*/g, /Periodo:[^\n]*/g, /De \d{2}-\d{2}-\d{4} al \d{2}-\d{2}-\d{4}/g,
+  ];
+  for (const b of boilerplate) texto = texto.replace(b, " ");
+  const brl = (s) => parseFloat(s.replace(/\./g, "").replace(",", "."));
+  const re = /(\d{2})-(\d{2})-(\d{4})\s+([\s\S]*?)\s+(\d{10,})\s+R\$\s*(-?[\d.]+,\d{2})\s+R\$\s*(-?[\d.]+,\d{2})/g;
+  const achadas = [];
+  let m, fimAnterior = 0;
+  while ((m = re.exec(texto)) !== null) {
+    const resto = texto.slice(fimAnterior, m.index).replace(/\s+/g, " ").trim();
+    let desc = m[4].replace(/\s+/g, " ").trim();
+    if (resto && !/^[\d\s/.-]+$/.test(resto) && resto.length < 80) desc = resto + " " + desc;
+    achadas.push({ id: m[5], data: `${m[3]}-${m[2]}-${m[1]}`, descricao: desc, valor: brl(m[6]), saldo: brl(m[7]) });
+    fimAnterior = re.lastIndex;
+  }
+  return achadas;
+}
+
+$("#inputPdf").addEventListener("change", async (e) => {
+  const arquivos = [...e.target.files];
+  if (!arquivos.length) return;
+  const st = $("#statusImport");
+  st.textContent = "Lendo o PDF no seu aparelho…";
+  try {
+    await carregarPdfJs();
+    let novas = 0, total = 0;
+    const chaves = new Set(transacoes.map((t) => `${t.id}|${t.valor}|${(t.descricao || "").slice(0, 20)}`));
+    for (const arq of arquivos) {
+      const pdf = await window.pdfjsLib.getDocument({ data: await arq.arrayBuffer() }).promise;
+      let texto = "";
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const conteudo = await (await pdf.getPage(p)).getTextContent();
+        texto += conteudo.items.map((i) => i.str + (i.hasEOL ? "\n" : " ")).join("") + "\n";
+      }
+      const achadas = parsearTextoExtrato(texto);
+      total += achadas.length;
+      for (const t of achadas) {
+        const chave = `${t.id}|${t.valor}|${t.descricao.slice(0, 20)}`;
+        if (chaves.has(chave)) continue;
+        chaves.add(chave);
+        t.categoria = categorizar(t.descricao, t.valor); t.origem = "pdf";
+        transacoes.push(t); novas++;
+      }
+    }
+    if (!total) { st.textContent = "⚠️ Não encontrei transações nesse PDF. Confira se é o extrato de conta do Mercado Pago."; return; }
+    preparar(); salvarTudo(); render(); irParaAba("inicio");
+    st.textContent = "";
+    toast(`🎉 Pronto! <strong>${novas} transações novas</strong> importadas${novas < total ? ` (${total - novas} já existiam)` : ""}.`);
+  } catch (err) {
+    console.error(err);
+    st.textContent = "⚠️ Não consegui ler o PDF (" + err.message + "). Dica: a importação precisa de internet só na primeira vez.";
+  } finally { e.target.value = ""; }
+});
+
+/* ---------- início ---------- */
+function preparar() {
+  transacoes.forEach((t, i) => { t._uid = t._uid || "u" + i + "-" + String(t.id); t.categoria = t.categoria || categorizar(t.descricao, t.valor); });
+  transacoes.sort((a, b) => a.data.localeCompare(b.data));
+  const meses = mesesDisponiveis();
+  if (!mesSel || !meses.includes(mesSel)) {
+    // mês mais recente COM dados (ou o atual)
+    mesSel = [...new Set(transacoes.map((t) => mesDe(t.data)))].sort().pop() || meses[meses.length - 1];
+  }
+}
+
+async function iniciar() {
+  preparar();
+  // Na prévia/demonstração pode existir um arquivo local com os dados já importados.
+  // Ele NUNCA Vai para internet/GitHub (está no .gitignore) — o uso normal é importar o PDF aqui no aparelho.
+  if (!transacoes.length && !localStorage.getItem("Bolso.seedOk")) {
+    try {
+      const r = await fetch("dados-pessoais.json", { cache: "no-store" });
+      if (r.ok) {
+        const dados = await r.json();
+        if (Array.isArray(dados) && dados.length) {
+          transacoes = dados; preparar(); salvarTudo();
+          setTimeout(() => toast("👋 Importei seus extratos de <strong>setembro e outubro</strong> para você já começar vendo tudo!"), 600);
+        }
+      }
+    } catch { /* sem seed: tela de boas-vindas com o botão de importar */ }
+    localStorage.setItem("Bolso.seedOk", "1");
+  }
+  salvarTudo();
+  render();
+  navigator.serviceWorker?.register("sw.js").catch(() => {});
+}
+
+iniciar();
