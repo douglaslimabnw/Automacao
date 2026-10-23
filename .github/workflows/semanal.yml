@@ -1,0 +1,88 @@
+name: Episódio semanal
+
+# Toda sexta 15:00 (America/Sao_Paulo = 18:00 UTC) produz o próximo episódio
+# pendente e agenda a publicação para as 18:00 locais.
+on:
+  schedule:
+    - cron: "0 18 * * 5"
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Slug do episódio (vazio = próximo pendente)"
+        required: false
+      sem_publicar:
+        description: "Só renderizar (não enviar ao YouTube)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: episodio-semanal
+  cancel-in-progress: false
+
+jobs:
+  produzir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Restaurar token do YouTube
+        if: ${{ !inputs.sem_publicar }}
+        run: |
+          mkdir -p ~/.config/fabrica
+          echo '${{ secrets.YOUTUBE_TOKEN_JSON }}' > ~/.config/fabrica/token.json
+
+      - name: Definir episódio
+        id: ep
+        run: |
+          SLUG="${{ inputs.slug }}"
+          if [ -z "$SLUG" ]; then
+            SLUG=$(for d in episodes/*/; do
+              [ -f "$d/ep.json" ] && [ ! -f "$d/final.mp4" ] && basename "$d" && break
+            done)
+          fi
+          if [ -z "$SLUG" ]; then
+            echo "Nenhum episódio pendente. Encerrando."
+            echo "vazio=1" >> "$GITHUB_OUTPUT"
+          fi
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      - name: Produzir
+        if: steps.ep.outputs.vazio != '1'
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          SLUG="${{ steps.ep.outputs.slug }}"
+          python -m fabrica roteiro "$SLUG"
+          python -m fabrica narrar  "$SLUG"
+          python -m fabrica imagens "$SLUG"
+          python -m fabrica timeline "$SLUG"
+          python -m fabrica render  "$SLUG"
+          python -m fabrica pacote  "$SLUG"
+
+      - name: Publicar (agendado)
+        if: steps.ep.outputs.vazio != '1' && !inputs.sem_publicar
+        run: python -m fabrica publicar "${{ steps.ep.outputs.slug }}" --agendar
+
+      - name: Guardar artefatos
+        if: steps.ep.outputs.vazio != '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: episodio-${{ steps.ep.outputs.slug }}
+          path: |
+            episodes/${{ steps.ep.outputs.slug }}/final.mp4
+            episodes/${{ steps.ep.outputs.slug }}/thumbnail.jpg
+            episodes/${{ steps.ep.outputs.slug }}/legendas.srt
+            episodes/${{ steps.ep.outputs.slug }}/publicacao_meta.json
+          retention-days: 14

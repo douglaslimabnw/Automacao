@@ -1,0 +1,12 @@
+# núcleo (obrigatório)
+pyyaml>=6.0
+numpy>=1.24
+pillow>=10.0
+imageio-ffmpeg>=0.4.9   # traz um ffmpeg estático completo (não precisa de ffprobe)
+
+# voz
+edge-tts>=6.1.9         # grátis, precisa de internet
+
+# publicação (opcional)
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.1

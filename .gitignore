@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+
+# mídia gerada: pesada e reproduzível — não versionar
+episodes/*/shots/
+episodes/*/narracao/
+episodes/*/build/
+episodes/*/trilha/
+episodes/*/final.mp4
+episodes/*/audio.m4a
+episodes/*/legendas.*
+episodes/*/thumbnail.jpg
+episodes/*/publicacao.json
+
+# credenciais
+client_secret.json
+token.json
+.env
+episodes/*/publicacao_meta.json

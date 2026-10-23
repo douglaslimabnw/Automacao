@@ -1,0 +1,54 @@
+# Série: Vozes do Abismo
+# Um sobrevivente de um reino morto conta, olhando para a câmera, o que
+# aconteceu ali — episódio novo toda sexta, mesmo horário.
+serie:
+  nome: Vozes do Abismo
+  premissa: >
+    Cada episódio é uma "confissão" de um personagem que sobreviveu ao evento
+    que destruiu o reino. Ele fala direto com quem assiste, mostra os lugares
+    onde esteve e conversa com as figuras que encontra pelo caminho.
+  publico: jogadores de souls-like e RPG dark que gostam de lore e análise
+
+video:
+  largura: 1920
+  altura: 1080
+  fps: 24
+  crf: 20
+  preset: medium
+  audio_bitrate: 192k
+  loudness: -14        # LUFS, padrão do YouTube
+
+estilo:
+  semente_base: 777
+  grao: 6
+  vinheta: 0.35
+  contraste: 1.08
+  saturacao: 0.85
+  brilho: -0.02
+  zoom: 0.07
+  tremor: 0.30
+  transicao: 0.7
+  legendas: burn       # burn | srt | off
+  fonte_titulo: assets/brand/fonts/Cinzel.ttf
+  fonte_legenda: assets/brand/fonts/BebasNeue.ttf
+
+voz:
+  provedor: edge
+  voz: pt-BR-AntonioNeural   # grave, cadenciado
+  velocidade: "-8%"
+  tom: "-4Hz"
+  pausa_entre_cenas: 0.45
+
+trilha:
+  modo: procedural
+  mood: melancolico
+  intensidade: 0.28
+  duck: 0.16
+
+publicacao:
+  categoria: 20        # Gaming
+  privacidade_inicial: private
+  dia_semana: sexta
+  hora: "18:00"
+  fuso: America/Sao_Paulo
+  tags_base: [lore, dark fantasy, análise, games, lore de jogos, dark souls, elden ring]
