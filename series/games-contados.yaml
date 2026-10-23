@@ -1,0 +1,59 @@
+# Série: Vozes do Servidor
+# gerado por: fabrica serie-nova
+video:
+  largura: 1920
+  altura: 1080
+  fps: 24
+  codec: libx264
+  preset: medium
+  crf: 20
+  audio_bitrate: 192k
+  loudness: -14
+estilo:
+  semente_base: 777
+  paleta: teal frio nas sombras, âmbar quente nos pontos de luz
+  grao: 6
+  vinheta: 0.35
+  contraste: 1.08
+  saturacao: 0.85
+  brilho: -0.02
+  zoom: 0.07
+  tremor: 0.3
+  transicao: 0.7
+  legendas: burn
+  fonte_titulo: assets/brand/fonts/Cinzel.ttf
+  fonte_legenda: assets/brand/fonts/BebasNeue.ttf
+voz:
+  provedor: edge
+  voz: pt-BR-AntonioNeural
+  velocidade: -8%
+  tom: -4Hz
+  pausa_entre_cenas: 0.45
+trilha:
+  modo: procedural
+  mood: melancolico
+  intensidade: 0.28
+  duck: 0.16
+publicacao:
+  categoria: 20
+  privacidade_inicial: private
+  dia_semana: sexta
+  hora: '18:00'
+  fuso: America/Sao_Paulo
+  tags_base:
+  - lore de jogos
+  - nostalgia
+  - história dos games
+  - análise
+serie:
+  nome: Vozes do Servidor
+  premissa: Cada personagem (NPC, chefe, item, save esquecido) conta a história do
+    jogo em que viveu, em primeira pessoa, como quem lembra de uma guerra que ninguém
+    mais lembra.
+  publico: jogadores nostálgicos de PS1/PS2 e fãs de lore
+  nicho: história dos videogames contada pelos próprios personagens
+  lexico:
+    coisas: [Memory Card, Disco Riscado, Chefe Final, Save Perdido, Cartucho, NPC, Continua]
+    acoes: [Nunca Foi Zerado, Ainda Espera, Não Tinha Nome, Engoliu o Console]
+    lugares: [Fase 1, Sala do Chefe, Menu Inicial, Floresta de Polígonos, Créditos]
+  voz: melancólico, saudoso, sem ironia

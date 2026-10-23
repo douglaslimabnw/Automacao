@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Testes
+        run: python -m unittest discover -s tests -v
+      - name: Sanidade do CLI
+        run: |
+          python -m fabrica --help > /dev/null
+          python -m fabrica estado
+          python -m fabrica fila
+          python -m fabrica qc ep-01-o-reino-que-esqueceu-o-sol || true
+      - name: Arte procedural (rápida)
+        run: python -m fabrica arte trono /tmp/teste.jpg --largura 480 --altura 270

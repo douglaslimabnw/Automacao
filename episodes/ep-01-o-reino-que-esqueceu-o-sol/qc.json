@@ -1,0 +1,42 @@
+{
+  "escopo": "vídeo · ep-01-o-reino-que-esqueceu-o-sol",
+  "aprovado": false,
+  "itens": [
+    {
+      "nome": "duração",
+      "ok": false,
+      "detalhe": "5.7 min",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "faixa de áudio",
+      "ok": true,
+      "detalhe": "stream de áudio presente",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "resolução",
+      "ok": true,
+      "detalhe": "1280x720",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "legendas",
+      "ok": true,
+      "detalhe": "241 blocos em legendas.srt",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "thumbnail",
+      "ok": true,
+      "detalhe": "1280x720",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "loudness",
+      "ok": false,
+      "detalhe": "média -29.0 dB",
+      "severidade": "aviso"
+    }
+  ]
+}

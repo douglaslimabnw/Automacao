@@ -1,0 +1,78 @@
+{
+  "escopo": "roteiro · ep-03-cartucho-o-que-ninguem-contou",
+  "aprovado": false,
+  "itens": [
+    {
+      "nome": "duração estimada",
+      "ok": false,
+      "detalhe": "2.3 min (alvo 13, faixa 8–18)",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "volume de roteiro",
+      "ok": false,
+      "detalhe": "290 palavras (mínimo 1.200)",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "cenas faladas",
+      "ok": true,
+      "detalhe": "8 cenas com narração",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "abertura curta",
+      "ok": true,
+      "detalhe": "31 palavras na primeira cena",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "gancho na primeira frase",
+      "ok": true,
+      "detalhe": "\"Cartucho: o que ninguém contou não começa onde você imagina.\"",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "diálogo/contradição",
+      "ok": true,
+      "detalhe": "2 marcas de fala",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "gancho de inscrição",
+      "ok": true,
+      "detalhe": "cena marcada como gancho",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "chamada para o próximo",
+      "ok": true,
+      "detalhe": "fecho com CTA/próximo",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "frases curtas",
+      "ok": true,
+      "detalhe": "média de 10.7 palavras/frase",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "sem clichês de IA",
+      "ok": true,
+      "detalhe": "0 encontrados: nenhum",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "variedade de cenários",
+      "ok": true,
+      "detalhe": "5 cenários, 25% no mais usado",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "originalidade vs. episódios anteriores",
+      "ok": false,
+      "detalhe": "similaridade 0.43 com roteiro.md",
+      "severidade": "aviso"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "slug": "ep-03-cartucho-o-que-ninguem-contou",
+  "serie": "games-contados",
+  "episodio": 3,
+  "titulo": "Cartucho: o que ninguém contou",
+  "duracao_alvo": 780,
+  "duracao_estimada": 144.8,
+  "semente": 909,
+  "thumbnail": "thumbnail.jpg",
+  "sinopse": "Episódio sobre cartucho: o que ninguém contou, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado.",
+  "tags": [],
+  "cenas": [
+    {
+      "id": "abertura",
+      "tipo": "cartao",
+      "secao": "Abertura",
+      "narracao": "",
+      "visual": "abismo",
+      "duracao": 4.5,
+      "cartao": {
+        "tipo": "titulo",
+        "titulo": "Cartucho: o que ninguém contou",
+        "subtitulo": "Episódio 03"
+      },
+      "imagem": "shots/abertura.jpg"
+    },
+    {
+      "id": "c001",
+      "tipo": "fala",
+      "narracao": "Cartucho: o que ninguém contou não começa onde você imagina. Começa no dia em que eu parei de contar os dias. Se você está ouvindo isso, é porque alguém precisava ouvir.",
+      "secao": "Abertura",
+      "visual": "abismo",
+      "paleta": "abismo",
+      "figura": true,
+      "plano": "medio",
+      "movimento": "zoom_out",
+      "sfx": "riser",
+      "imagem": "shots/c001.jpg"
+    },
+    {
+      "id": "c002",
+      "tipo": "fala",
+      "narracao": "Eu vi Episódio sobre cartucho: o que ninguém contou, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado. pela primeira vez com os olhos de quem ainda acreditava em finais felizes. O lugar estava de pé. As pessoas não.",
+      "secao": "O primeiro sinal",
+      "visual": "ruina",
+      "paleta": "abismo",
+      "figura": true,
+      "plano": "medio",
+      "movimento": "pan_esq",
+      "sfx": "riser",
+      "imagem": "shots/c002.jpg"
+    },
+    {
+      "id": "c003",
+      "tipo": "gancho",
+      "narracao": "Há detalhes que ninguém conta sobre Episódio sobre cartucho: o que ninguém contou, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado.: o cheiro, o som do metal, a forma como a luz se recusa a entrar.",
+      "secao": "O que ficou para trás",
+      "visual": "caverna",
+      "paleta": "catacumba",
+      "figura": false,
+      "plano": "aberto",
+      "movimento": "pan_esq",
+      "sfx": "impacto",
+      "imagem": "shots/c003.jpg"
+    },
+    {
+      "id": "c004",
+      "tipo": "fala",
+      "narracao": "Eu lembro de todos, um por um. Antes de continuar: se essa história te prendeu, deixa o like e se inscreve. É isso que faz o próximo episódio existir.",
+      "secao": "O que ficou para trás",
+      "visual": "caverna",
+      "paleta": "catacumba",
+      "figura": false,
+      "plano": "aberto",
+      "movimento": "zoom_out",
+      "imagem": "shots/c004.jpg"
+    },
+    {
+      "id": "c005",
+      "tipo": "fala",
+      "narracao": "— Você não deveria ter vindo — ele disse. — Eu precisava saber. — Saber não devolve ninguém. Ele estava certo. Eu não voltei diferente por saber. Voltei porque sabia.",
+      "secao": "A voz de outro",
+      "visual": "trono",
+      "paleta": "trono",
+      "figura": true,
+      "plano": "medio",
+      "movimento": "zoom_out",
+      "sfx": "riser",
+      "imagem": "shots/c005.jpg"
+    },
+    {
+      "id": "c006",
+      "tipo": "fala",
+      "narracao": "Foi ali que eu entendi: Episódio sobre cartucho: o que ninguém contou, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado. não é um lugar. É uma decisão que alguém tomou e que todos nós continuamos tomando, todas as manhãs, sem perceber.",
+      "secao": "A revelação",
+      "visual": "abismo",
+      "paleta": "abismo",
+      "figura": true,
+      "plano": "medio",
+      "movimento": "pan_esq",
+      "sfx": "riser",
+      "imagem": "shots/c006.jpg"
+    },
+    {
+      "id": "c007",
+      "tipo": "proximo",
+      "narracao": "Se você chegou até aqui, você já sabe o que eu vou dizer. Ainda assim, precisa ouvir de mim: não existe volta. Existe continuar. Semana que vem eu conto o que encontrei depois da última porta. Se você quer estar lá, se inscreve e ativa o sininho.",
+      "secao": "O que resta",
+      "visual": "floresta",
+      "paleta": "floresta",
+      "figura": true,
+      "plano": "medio",
+      "movimento": "zoom_out",
+      "sfx": "riser",
+      "imagem": "shots/c007.jpg"
+    },
+    {
+      "id": "fecho_cta",
+      "tipo": "cta",
+      "secao": "Encerramento",
+      "narracao": "Se você chegou até aqui, você aguenta o que vem depois. Se inscreve — o próximo episódio já está escrito.",
+      "visual": "trono",
+      "duracao": 9.0,
+      "cartao": {
+        "tipo": "cta",
+        "titulo": "INSCREVA-SE",
+        "subtitulo": "novo episódio toda semana"
+      },
+      "imagem": "shots/fecho_cta.jpg"
+    }
+  ],
+  "capitulos": [
+    "00:00 Abertura",
+    "00:15 O primeiro sinal",
+    "00:26 O que ficou para trás",
+    "00:48 A voz de outro",
+    "00:59 A revelação",
+    "01:10 O que resta",
+    "01:21 Encerramento"
+  ]
+}

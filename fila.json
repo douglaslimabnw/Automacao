@@ -1,0 +1,67 @@
+{
+  "serie": "games-contados",
+  "itens": [
+    {
+      "numero": 1,
+      "slug": "ep-01-o-reino-que-esqueceu-o-sol",
+      "titulo": "O Reino que Esqueceu o Sol",
+      "brief": "O sobrevivente conta como o sino apagou a capital e por que ainda sobe na muralha.",
+      "gancho_final": "o que existe debaixo do campanário",
+      "status": "pronto",
+      "criado_em": "2026-10-23T00:00:00+00:00"
+    },
+    {
+      "numero": 2,
+      "slug": "ep-02-o-segundo-sino",
+      "titulo": "O Segundo Sino",
+      "brief": "O narrador desce ao campanário e encontra a sala dos sinos que ainda não tocaram — um deles tem o nome dele.",
+      "gancho_final": "quem tocou o primeiro sino e o que acordou",
+      "status": "pronto",
+      "criado_em": "2026-10-23T00:00:00+00:00",
+      "erro": "narração: edge-tts falhou: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x7f058426a7b0> [None]",
+      "concluido_em": "2026-10-23T22:33:05+00:00"
+    },
+    {
+      "numero": 3,
+      "titulo": "Cartucho: o que ninguém contou",
+      "brief": "Episódio sobre cartucho: o que ninguém contou, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado.",
+      "gancho_final": "prometer o que existe atrás da próxima porta",
+      "slug": "ep-03-cartucho-o-que-ninguem-contou",
+      "status": "precisa_revisao",
+      "serie": "games-contados",
+      "criado_em": "2026-10-23T22:33:36+00:00",
+      "concluido_em": "2026-10-23T22:35:20+00:00",
+      "motivo": "roteiro curto e 43% similar ao ep. 02 (escritor mock); com agente real o laço de correção resolve"
+    },
+    {
+      "numero": 4,
+      "titulo": "Depois de Floresta de Polígonos",
+      "brief": "Episódio sobre depois de floresta de polígonos, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado.",
+      "gancho_final": "prometer o que existe atrás da próxima porta",
+      "slug": "ep-04-depois-de-floresta-de-poligonos",
+      "status": "todo",
+      "serie": "games-contados",
+      "criado_em": "2026-10-23T22:33:36+00:00"
+    },
+    {
+      "numero": 5,
+      "titulo": "Disco Riscado: o que ninguém contou",
+      "brief": "Episódio sobre disco riscado: o que ninguém contou, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado.",
+      "gancho_final": "prometer o que existe atrás da próxima porta",
+      "slug": "ep-05-disco-riscado-o-que-ninguem-contou",
+      "status": "todo",
+      "serie": "games-contados",
+      "criado_em": "2026-10-23T22:33:36+00:00"
+    },
+    {
+      "numero": 6,
+      "titulo": "7 Vezes em Fase 1",
+      "brief": "Episódio sobre 7 vezes em fase 1, revelando um detalhe novo do mistério do sino e aprofundando um personagem já apresentado.",
+      "gancho_final": "prometer o que existe atrás da próxima porta",
+      "slug": "ep-06-7-vezes-em-fase-1",
+      "status": "todo",
+      "serie": "games-contados",
+      "criado_em": "2026-10-23T22:33:36+00:00"
+    }
+  ]
+}

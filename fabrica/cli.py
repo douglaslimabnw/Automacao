@@ -161,30 +161,12 @@ def cmd_arte(args) -> None:
 
 
 def cmd_diario(args) -> None:
-    """Pipeline completo do próximo episódio pendente (para o cron semanal)."""
-    fila = sorted((RAIZ / "episodes").glob("*/ep.json"))
-    if not fila:
-        raise SystemExit("nenhum episódio na fila")
-    pendente = None
-    for cfg_path in fila:
-        slug = cfg_path.parent.name
-        if not (cfg_path.parent / "final.mp4").exists():
-            pendente = slug
-            break
-    if pendente is None and not args.repetir:
-        ok("nada pendente — tudo já renderizado")
-        return
-    slug = pendente or fila[0].parent.name
-    log(f"produzindo {slug}")
-    roteiro.gerar_roteiro(slug)
-    ep = _ep(slug)
-    voz.narrar(ep)
-    imagens.planejar_imagens(ep, largura=ep.config["video"]["largura"],
-                             altura=ep.config["video"]["altura"])
-    imagens.gerar_thumbnail(ep)
-    timeline.montar(ep)
-    render.renderizar(ep)
-    publicar.enviar(ep, agendado=True, dry_run=args.dry_run)
+    """Pipeline completo do próximo episódio da fila (para cron/agendador)."""
+    from . import showrunner
+
+    showrunner.produzir(serie=args.serie, publicar_=not args.dry_run,
+                        provedor=args.provedor, ignorar_qc=args.ignorar_qc)
+    showrunner.escrever_dashboard()
 
 
 # ------------------------------------------------------------------ parser
@@ -268,9 +250,59 @@ def montar_parser() -> argparse.ArgumentParser:
     pv.add_argument("--frames", type=int, default=12)
     pv.set_defaults(func=cmd_preview)
 
+    sn = sub.add_parser("serie-nova", help="cria uma série nova (nicho + parâmetros)")
+    sn.add_argument("slug")
+    sn.add_argument("--nome", required=True)
+    sn.add_argument("--nicho", required=True, help="ex: história dos games contada pelos personagens")
+    sn.add_argument("--premissa", required=True)
+    sn.add_argument("--publico", default="jogadores de souls-like e RPG dark")
+    sn.add_argument("--tom", default="")
+    sn.add_argument("--mood", default="melancolico")
+    sn.add_argument("--voz-tts", default="")
+    sn.add_argument("--tags", default="lore,games,dark fantasy,análise")
+    sn.add_argument("--forcar", action="store_true")
+    sn.set_defaults(func=cmd_serie_nova)
+
+    id_ = sub.add_parser("ideias", help="agente propõe o próximo lote de episódios")
+    id_.add_argument("--serie", default="vozes-do-abismo")
+    id_.add_argument("--n", type=int, default=6)
+    id_.add_argument("--provedor", choices=["claude", "codex", "api", "mock"])
+    id_.add_argument("--orcamento", type=float, default=1.0)
+    id_.set_defaults(func=cmd_ideias)
+
+    fl = sub.add_parser("fila", help="lista ou adiciona itens na fila")
+    fl.add_argument("--serie", default=None)
+    fl.add_argument("--adicionar", help="título do episódio")
+    fl.add_argument("--brief", default="")
+    fl.add_argument("--gancho", default="")
+    fl.set_defaults(func=cmd_fila)
+
+    pr = sub.add_parser("producao", help="produz o próximo episódio da fila (autônomo)")
+    pr.add_argument("--serie", default=None)
+    pr.add_argument("--publicar", action="store_true")
+    pr.add_argument("--sem-render", action="store_true")
+    pr.add_argument("--provedor", choices=["claude", "codex", "api", "mock"])
+    pr.add_argument("--ignorar-qc", action="store_true")
+    pr.add_argument("--tentativas-qc", type=int, default=2)
+    pr.add_argument("--preview", action="store_true", help="960x540 + render rápido")
+    pr.add_argument("--voz", choices=["edge", "elevenlabs", "openai", "arquivo", "silencio"],
+                    help="força o provedor de voz")
+    pr.set_defaults(func=cmd_producao)
+
+    es = sub.add_parser("estado", help="painel de status da fábrica")
+    es.set_defaults(func=cmd_estado)
+
+    q = sub.add_parser("qc", help="roda os portões de qualidade")
+    q.add_argument("slug")
+    q.add_argument("--escopo", choices=["roteiro", "video", "tudo"], default="roteiro")
+    q.set_defaults(func=cmd_qc)
+
     d = sub.add_parser("diario", help="produz e agenda o próximo episódio pendente")
+    d.add_argument("--serie", default=None)
     d.add_argument("--repetir", action="store_true")
     d.add_argument("--dry-run", action="store_true")
+    d.add_argument("--provedor", choices=["claude", "codex", "api", "mock"])
+    d.add_argument("--ignorar-qc", action="store_true")
     d.set_defaults(func=cmd_diario)
     return p
 
@@ -282,6 +314,136 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+def cmd_serie_nova(args) -> None:
+    """Cria uma nova série (nicho + parâmetros) pronta para produzir."""
+    from .showrunner import slugificar  # noqa: F401  (mantém import local barato)
+
+    destino = RAIZ / "series" / f"{args.slug}.yaml"
+    if destino.exists() and not args.forcar:
+        raise SystemExit(f"{destino} já existe (use --forcar)")
+    modelo = carregar_serie("vozes-do-abismo")
+    modelo.pop("_origem", None)
+    modelo["serie"] = {
+        "nome": args.nome,
+        "premissa": args.premissa,
+        "publico": args.publico,
+        "nicho": args.nicho,
+        "voz": args.tom or "primeira pessoa, sóbria, frases curtas",
+    }
+    if args.mood:
+        modelo["trilha"]["mood"] = args.mood
+    if args.voz_tts:
+        modelo["voz"]["voz"] = args.voz_tts
+    modelo["publicacao"]["tags_base"] = [t.strip() for t in args.tags.split(",") if t.strip()]
+
+    import yaml as _yaml
+
+    destino.write_text(
+        f"# Série: {args.nome}\n"
+        f"# gerado por: fabrica serie-nova\n"
+        + _yaml.safe_dump(modelo, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    biblia = RAIZ / "series" / f"{args.slug}-biblia.md"
+    if not biblia.exists():
+        biblia.write_text(
+            f"# Bíblia da série — {args.nome}\n\n"
+            f"## Nicho\n{args.nicho}\n\n"
+            f"## Premissa\n{args.premissa}\n\n"
+            f"## Público\n{args.publico}\n\n"
+            f"## Tom\n{args.tom or 'primeira pessoa, sóbria, frases curtas'}\n\n"
+            "## Mundo\n<!-- 5 a 10 fatos que nunca mudam -->\n\n"
+            "## Personagens\n| personagem | o que sabemos | o que está em aberto |\n"
+            "|---|---|---|\n\n"
+            "## Perguntas abertas (matéria-prima dos episódios)\n"
+            "1. \n2. \n3. \n\n"
+            "## Regras de escrita\n"
+            "- todo episódio responde uma pergunta e abre duas\n"
+            "- a contradição vem de outro personagem\n"
+            "- sem gore; o horror é a memória\n",
+            encoding="utf-8",
+        )
+
+    fila = RAIZ / "fila.json"
+    if not fila.exists():
+        salvar_json(fila, {"serie": args.slug, "itens": []})
+    ok(f"série criada: {destino}")
+    print(f"   bíblia: {biblia}")
+    print(f"   próximos passos:\n"
+          f"     1. edite a bíblia (é o que dá coerência ao agente)\n"
+          f"     2. python -m fabrica ideias --serie {args.slug} --n 8\n"
+          f"     3. python -m fabrica producao --serie {args.slug} --publicar")
+
+
+def cmd_ideias(args) -> None:
+    from . import showrunner
+
+    showrunner.gerar_ideias(args.serie, args.n, provedor=args.provedor,
+                            orcamento=args.orcamento)
+
+
+def cmd_fila(args) -> None:
+    from . import showrunner
+
+    fila = showrunner.carregar_fila()
+    if args.adicionar:
+        showrunner.enfileirar([{
+            "titulo": args.adicionar,
+            "brief": args.brief or "",
+            "gancho_final": args.gancho or "",
+        }], serie=args.serie)
+        fila = showrunner.carregar_fila()
+    if not fila["itens"]:
+        print("fila vazia — use `fabrica ideias` ou `fabrica fila --adicionar 'Título'`")
+        return
+    print(f"{'#':>3}  {'status':<18}{'slug':<46}título")
+    for i in fila["itens"]:
+        print(f"{i['numero']:>3}  {i.get('status','?'):<18}{i['slug']:<46}{i['titulo']}")
+
+
+def cmd_producao(args) -> None:
+    from . import showrunner
+
+    resumo = showrunner.produzir(
+        serie=args.serie,
+        publicar_=args.publicar,
+        sem_render=args.sem_render,
+        provedor=args.provedor,
+        ignorar_qc=args.ignorar_qc,
+        tentativas_qc=args.tentativas_qc,
+        preview=args.preview,
+        voz_provedor=args.voz,
+    )
+    print(json.dumps(resumo, ensure_ascii=False, indent=2)[:4000])
+    showrunner.escrever_dashboard()
+
+
+def cmd_estado(args) -> None:
+    from . import showrunner
+
+    dados = showrunner.estado_geral()
+    if not dados["itens"]:
+        print("nenhum episódio na fila")
+        return
+    print(f"{'#':>3}  {'status':<18}{'vídeo':<7}{'US$':>7}  título")
+    for i in dados["itens"]:
+        print(f"{i['numero']:>3}  {i['status']:<18}{'sim' if i['final'] else '—':<7}"
+              f"{i['custo_usd']:>7.2f}  {i['titulo']}")
+    print(f"\ncusto acumulado: US$ {dados['custo_total_usd']:.2f}")
+    print(f"painel: {showrunner.escrever_dashboard()}")
+
+
+def cmd_qc(args) -> None:
+    from . import qc
+
+    ep = _ep(args.slug)
+    rel = qc.rodar(ep, escopo=args.escopo)
+    print(rel.texto())
+    raise SystemExit(0 if rel.aprovado else 1)
 
 
 def cmd_preview(args) -> None:

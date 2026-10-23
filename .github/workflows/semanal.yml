@@ -1,27 +1,39 @@
 name: Episódio semanal
 
-# Toda sexta 15:00 (America/Sao_Paulo = 18:00 UTC) produz o próximo episódio
-# pendente e agenda a publicação para as 18:00 locais.
+# Toda sexta 15:00 em Brasília (18:00 UTC): produz o próximo episódio da fila
+# com o agente de IA e agenda a publicação para as 18:00 locais.
+#
+# Secrets necessários:
+#   YOUTUBE_TOKEN_JSON  (~/.config/fabrica/token.json após `fabrica auth`)
+#   ANTHROPIC_API_KEY   ou OPENAI_API_KEY  (o "cérebro")
+# Opcionais:
+#   FABRICA_WEBHOOK     URL que recebe o status (Discord/Slack/Telegram/...)
 on:
   schedule:
     - cron: "0 18 * * 5"
   workflow_dispatch:
     inputs:
       slug:
-        description: "Slug do episódio (vazio = próximo pendente)"
+        description: "Slug do episódio (vazio = próximo da fila)"
         required: false
       sem_publicar:
-        description: "Só renderizar (não enviar ao YouTube)"
+        description: "Só produzir (não enviar ao YouTube)"
         type: boolean
         default: false
+      provedor:
+        description: "claude | codex | api | mock"
+        default: "claude"
 
 concurrency:
   group: episodio-semanal
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   produzir:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest          # troque por self-hosted para render rápido
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
@@ -31,13 +43,13 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Instalar dependências
+      - name: Dependências
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          npm install -g @anthropic-ai/claude-code || echo "cli claude indisponível"
 
       - name: Restaurar token do YouTube
-        if: ${{ !inputs.sem_publicar }}
         run: |
           mkdir -p ~/.config/fabrica
           echo '${{ secrets.YOUTUBE_TOKEN_JSON }}' > ~/.config/fabrica/token.json
@@ -47,35 +59,43 @@ jobs:
         run: |
           SLUG="${{ inputs.slug }}"
           if [ -z "$SLUG" ]; then
-            SLUG=$(for d in episodes/*/; do
-              [ -f "$d/ep.json" ] && [ ! -f "$d/final.mp4" ] && basename "$d" && break
-            done)
+            SLUG=$(python - <<'PY'
+          import json, pathlib
+          fila = json.loads(pathlib.Path("fila.json").read_text())
+          for i in fila["itens"]:
+              if i.get("status") in ("todo", "erro", "precisa_revisao"):
+                  print(i["slug"]); break
+          PY
+            )
           fi
           if [ -z "$SLUG" ]; then
-            echo "Nenhum episódio pendente. Encerrando."
+            echo "Nenhum episódio pendente na fila." >> "$GITHUB_STEP_SUMMARY"
             echo "vazio=1" >> "$GITHUB_OUTPUT"
           fi
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
 
-      - name: Produzir
+      - name: Enfileirar automaticamente se a fila estiver seca
+        if: steps.ep.outputs.vazio == '1'
+        run: python -m fabrica ideias --n 4 --provedor "${{ inputs.provedor || 'claude' }}"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Produzir (agente + QC + render)
         if: steps.ep.outputs.vazio != '1'
         env:
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FABRICA_AGENTE: ${{ inputs.provedor || 'claude' }}
+          FABRICA_WEBHOOK: ${{ secrets.FABRICA_WEBHOOK }}
+          FABRICA_ORCAMENTO_MAX: "1.50"
         run: |
-          SLUG="${{ steps.ep.outputs.slug }}"
-          python -m fabrica roteiro "$SLUG"
-          python -m fabrica narrar  "$SLUG"
-          python -m fabrica imagens "$SLUG"
-          python -m fabrica timeline "$SLUG"
-          python -m fabrica render  "$SLUG"
-          python -m fabrica pacote  "$SLUG"
+          python -m fabrica producao \
+            ${{ inputs.sem_publicar && '--sem-render' || '--publicar' }} \
+            --provedor "${{ inputs.provedor || 'claude' }}"
+          python -m fabrica estado
 
-      - name: Publicar (agendado)
-        if: steps.ep.outputs.vazio != '1' && !inputs.sem_publicar
-        run: python -m fabrica publicar "${{ steps.ep.outputs.slug }}" --agendar
-
-      - name: Guardar artefatos
+      - name: Salvar relatório e artefatos
         if: steps.ep.outputs.vazio != '1'
         uses: actions/upload-artifact@v4
         with:
@@ -84,5 +104,17 @@ jobs:
             episodes/${{ steps.ep.outputs.slug }}/final.mp4
             episodes/${{ steps.ep.outputs.slug }}/thumbnail.jpg
             episodes/${{ steps.ep.outputs.slug }}/legendas.srt
-            episodes/${{ steps.ep.outputs.slug }}/publicacao_meta.json
+            episodes/${{ steps.ep.outputs.slug }}/qc.md
+            episodes/${{ steps.ep.outputs.slug }}/RELATORIO.md
+            PAINEL.md
+            fila.json
           retention-days: 14
+
+      - name: Registrar estado no repositório
+        if: always()
+        run: |
+          git config user.name "fabrica[bot]"
+          git config user.email "fabrica@users.noreply.github.com"
+          git add fila.json PAINEL.md episodes/*/estado.json episodes/*/qc.json 2>/dev/null || true
+          git commit -m "chore: estado da produção $(date -u +%F)" || echo "sem mudanças"
+          git push || echo "push ignorado"

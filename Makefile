@@ -2,7 +2,7 @@
 SLUG ?= ep-01-o-reino-que-esqueceu-o-sol
 PY ?= python3
 
-.PHONY: help instalar novo roteiro narrar imagens timeline render preview pacote publicar demo testes limpar
+.PHONY: help instalar novo roteiro narrar imagens timeline render preview pacote publicar demo testes limpar estado produzir ideias
 
 help:
 	@echo "make instalar                     instala as dependências"
@@ -12,6 +12,9 @@ help:
 	@echo "make publicar SLUG=...            envia e agenda no YouTube"
 	@echo "make demo                         render de 3 cenas em 720p (sem voz)"
 	@echo "make testes                       roda a suíte"
+	@echo "make estado                       painel de status + PAINEL.md"
+	@echo "make produzir SERIE=x EXTRA=--publicar   produz o próximo da fila"
+	@echo "make ideias SERIE=x N=4           agente propõe próximos episódios"
 
 instalar:
 	$(PY) -m pip install -r requirements.txt
@@ -43,6 +46,15 @@ demo:
 
 testes:
 	$(PY) -m unittest discover -s tests -v
+
+estado:
+	$(PY) -m fabrica estado
+
+produzir:
+	$(PY) -m fabrica producao --serie $(SERIE) $(EXTRA)
+
+ideias:
+	$(PY) -m fabrica ideias --serie $(SERIE) --n $(N)
 
 limpar:
 	rm -rf episodes/*/build episodes/*/shots episodes/*/trilha episodes/*/narracao

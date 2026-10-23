@@ -100,7 +100,22 @@ class Episodio:
     def __post_init__(self):
         self.base = RAIZ / "episodes" / self.slug
         if not self.plan:
-            self.plan = ler_json(self.base / "plan.json")
+            plano = self.base / "plan.json"
+            if plano.exists():
+                self.plan = ler_json(plano)
+            else:
+                # episódio recém-criado pela fila: ainda não tem plano
+                meta = self.base / "ep.json"
+                dados = ler_json(meta) if meta.exists() else {}
+                self.plan = {
+                    "slug": self.slug,
+                    "serie": dados.get("serie", "vozes-do-abismo"),
+                    "titulo": dados.get("titulo", self.slug),
+                    "episodio": dados.get("numero", 1),
+                    "semente": dados.get("semente", 777),
+                    "sinopse": dados.get("sinopse", ""),
+                    "cenas": [],
+                }
         self.config = carregar_serie(self.plan.get("serie", "vozes-do-abismo"))
 
     # ---- caminhos -------------------------------------------------------
@@ -122,7 +137,7 @@ class Episodio:
 
     @property
     def cenas(self) -> list[dict]:
-        return self.plan["cenas"]
+        return self.plan.get("cenas", [])
 
     def garantir_pastas(self) -> None:
         for p in (self.shots, self.narracao, self.build, self.base / "trilha"):

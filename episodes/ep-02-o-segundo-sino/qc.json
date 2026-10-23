@@ -1,0 +1,42 @@
+{
+  "escopo": "vídeo · ep-02-o-segundo-sino",
+  "aprovado": false,
+  "itens": [
+    {
+      "nome": "duração",
+      "ok": false,
+      "detalhe": "1.4 min",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "faixa de áudio",
+      "ok": true,
+      "detalhe": "stream de áudio presente",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "resolução",
+      "ok": true,
+      "detalhe": "1280x720",
+      "severidade": "bloqueia"
+    },
+    {
+      "nome": "legendas",
+      "ok": true,
+      "detalhe": "60 blocos em legendas.srt",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "thumbnail",
+      "ok": true,
+      "detalhe": "1280x720",
+      "severidade": "aviso"
+    },
+    {
+      "nome": "loudness",
+      "ok": true,
+      "detalhe": "média -18.9 dB",
+      "severidade": "aviso"
+    }
+  ]
+}

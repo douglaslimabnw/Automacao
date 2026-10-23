@@ -198,6 +198,64 @@ Teste uma arte isolada sem criar episódio:
 python -m fabrica arte caverna /tmp/teste.jpg --figura --largura 1920 --altura 1080
 ```
 
+---
+
+## 11. Rodar sozinho (a parte que interessa)
+
+A fábrica tem uma camada de autonomia: **fila + agente + portões de qualidade +
+máquina de estados**. Você escolhe o nicho uma vez e ela produz o resto.
+
+```bash
+# 1. nicho + parâmetros (uma vez)
+python -m fabrica serie-nova games-contados \
+  --nome "Vozes do Servidor" \
+  --nicho "história dos videogames contada pelos próprios personagens" \
+  --premissa "Cada personagem conta o jogo em que viveu, como quem lembra de uma guerra." \
+  --publico "jogadores nostálgicos de PS1/PS2"
+
+# 2. o agente propõe a temporada e enfileira
+python -m fabrica ideias --serie games-contados --n 8
+
+# 3. uma única chamada produz o próximo episódio da fila
+python -m fabrica producao --publicar
+
+# 4. acompanhe
+python -m fabrica estado        # + PAINEL.md
+```
+
+O comando `producao` é idempotente: se o roteiro já existe, reaproveita; se a
+narração já foi gerada, não regrava; se o render falhou, retoma dali. Isso é o
+que permite agendar em cron/Actions sem medo.
+
+### Quem é o "cérebro"
+
+| provedor | como funciona | quando usar |
+|---|---|---|
+| `claude` | `claude -p` headless (Claude Code) | melhor texto em PT-BR; usa assinatura ou API |
+| `codex` | `codex exec --sandbox workspace-write` | se você já paga ChatGPT |
+| `api` | HTTP direto na API da Anthropic | CI sem instalar CLI |
+| `mock` | escritor local determinístico | testes e demo offline |
+
+```bash
+FABRICA_AGENTE=codex python -m fabrica producao --publicar
+```
+
+### O que impede a automação de fazer besteira
+
+- `python -m fabrica qc <slug>` — duração, clichê de IA, similaridade com
+  episódios anteriores, variedade visual, loudness. Reprovou → **não publica**;
+  o agente recebe a lista e corrige (até 2x).
+- `touch PAUSAR` na raiz — trava de emergência.
+- `FABRICA_ORCAMENTO_MAX=1.50` — teto de gasto por execução.
+- `FABRICA_WEBHOOK=...` — recebe o status no Discord/Slack/Telegram.
+
+**Guia completo das quatro formas de rodar sem tocar em nada** (GitHub Actions,
+Claude Routines na nuvem, VPS com cron, OpenClaw por WhatsApp):
+**[docs/AUTONOMIA.md](docs/AUTONOMIA.md)**.
+
+O que mudou em 2026 (modos headless, routines, política de conteúdo inautêntico
+do YouTube) e as decisões de arquitetura: **[docs/PESQUISA-2026.md](docs/PESQUISA-2026.md)**.
+
 ## 9. Testes
 
 ```bash
@@ -220,7 +278,16 @@ fabrica/
 ├── subtitles.py   SRT + ASS estilizado
 ├── audio_gen.py   trilha e SFX sintetizados (sem direitos, sem Content ID)
 ├── render.py      Ken Burns, grade, grão, crossfades, mixagem -14 LUFS, MP4
-└── publicar.py    upload, agendamento e metadados do YouTube
+├── publicar.py    upload, agendamento e metadados do YouTube
+│
+│  ── camada autônoma ──────────────────────────────────────────────
+├── agente.py      executor de agentes (claude | codex | api | mock)
+├── qc.py          portões de qualidade (inclui detector de conteúdo repetitivo)
+├── showrunner.py  fila, máquina de estados, produção sem intervenção
+└── escritor.py    escritor local determinístico (fallback e testes)
+prompts/           prompts versionados (roteiro, crítica, ideias)
+series/            configuração + bíblia de cada série
+fila.json          a fila de episódios (a "planilha" da fábrica)
 ```
 
 Licenças das fontes: Cinzel e Bebas Neue (SIL Open Font License) em
