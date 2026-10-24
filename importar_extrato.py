@@ -38,13 +38,11 @@ BOILERPLATE = [
     r"nosso SAC, ligue.*",
     r"da ouvidoria, ligue.*",
     r"Encontre nossos canais.*",
-    r"Douglas Roberto Nunes de Lima",
     r"CPF/CNPJ:.*",
     r"Agência:.*",
     r"Conta:.*",
     r"Periodo:.*",
     r"De \d{2}-\d{2}-\d{4} al \d{2}-\d{2}-\d{4}",
-    r"^\s*54917874435\s*$",
     r"^\s*1\s*$",
 ]
 
@@ -67,6 +65,10 @@ def brl(s: str) -> float:
 def extrair(caminho: str):
     doc = pymupdf.open(caminho)
     texto = "\n".join(pagina.get_text() for pagina in doc)
+    # Corta o cabecalho da 1a pagina (nome, CPF, agencia, conta, periodo),
+    # que nao contem movimentacoes — e dispensa dados pessoais no codigo.
+    if "DETALHE DOS MOVIMENTOS" in texto:
+        texto = texto.split("DETALHE DOS MOVIMENTOS", 1)[1]
     texto = limpar(texto)
 
     transacoes = []

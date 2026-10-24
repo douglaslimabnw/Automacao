@@ -23,9 +23,10 @@ const CATS = {
   renda:         { nome: "Renda / salário",         emoji: "💼", cor: "#0e9f6e" },
   pix_recebido:  { nome: "Pix recebido",            emoji: "🤝", cor: "#2ecc71" },
   rendimentos:   { nome: "Rendimentos",             emoji: "📈", cor: "#1abc9c" },
+  vale:          { nome: "Vale / adiantamento",     emoji: "💵", cor: "#c9a227" },
 };
 const CATS_SAIDA = ["mercado","comida","cartao","contas","transporte","farmacia","compras","vestuario","lazer","bancos","pessoas","reserva","transferencia","outros"];
-const CATS_ENTRADA = ["renda","pix_recebido","rendimentos","reserva","transferencia","outros"];
+const CATS_ENTRADA = ["renda","vale","pix_recebido","rendimentos","reserva","transferencia","outros"];
 
 /* ---------- utilidades ---------- */
 const $ = (s) => document.querySelector(s);
@@ -52,9 +53,11 @@ function categorizar(desc, valor) {
   if (/UBER|99 TECNOLOGIA/.test(d)) return "transporte";
   if (d.includes("RENDIMENTOS")) return "rendimentos";
   if (d.includes("FATURA") && d.includes("cartao".toUpperCase())) return "cartao";
-  const meuNome = d.includes("DOUGLAS ROBERTO NUNES DE LIMA");
+  let meuNome = false;
+  try { meuNome = !!(cfg?.nomeExtrato && d.includes(cfg.nomeExtrato)); } catch { /* nome do titular: aprendido do cabecalho do proprio extrato */ }
   if (valor > 0) {
-    if (d.startsWith("TRANSFERENCIA RECEBIDA") || d.includes("AROM SOLUCOES")) return "renda";
+    if (/\bVALE\b|ADIANTAMENTO/.test(d)) return "vale";
+    if (d.startsWith("TRANSFERENCIA RECEBIDA")) return "renda";
     if (d.includes("REEMBOLSO")) return "rendimentos";
     if (meuNome) return "transferencia";
     return "pix_recebido";
@@ -164,6 +167,9 @@ function gerarInsights(mes, mesAnterior) {
   const pixPessoas = tx.filter((t) => ehRenda(t) && catDe(t) === "pix_recebido").reduce((s, t) => s + t.valor, 0);
   if (pixPessoas > 0 && entrou > 0)
     dicas.push(`🤝 <strong>${fmt(pixPessoas)}</strong> entraram por Pix de pessoas (${Math.round((pixPessoas / entrou) * 100)}% das entradas). Sem isso, o mês fecharia em <strong>${fmt(entrou - pixPessoas - saiu)}</strong>. Bom saber para planejar o próximo.`);
+  const valeMes = tx.filter((t) => t.valor > 0 && catDe(t) === "vale").reduce((s, t) => s + t.valor, 0);
+  if (valeMes > 0)
+    dicas.push(`💵 Você pegou <strong>${fmt(valeMes)}</strong> de vale/adiantamento. Lembre: vale <strong>não é dinheiro novo</strong> — é um pedaço do salário que chegou antes. No próximo pagamento, considere que vão entrar uns <strong>${fmt(valeMes)} a menos</strong>.`);
   const comSaldo = tx.filter((t) => typeof t.saldo === "number");
   if (comSaldo.length > 5) {
     const apertados = comSaldo.filter((t) => t.saldo < 50).length;
@@ -621,6 +627,8 @@ function carregarPdfJs() {
 
 function parsearTextoExtrato(textoBruto) {
   let texto = textoBruto;
+  const corteCab = texto.indexOf("DETALHE DOS MOVIMENTOS"); // corta o cabecalho (nome, CPF, conta...)
+  if (corteCab >= 0) texto = texto.slice(corteCab + "DETALHE DOS MOVIMENTOS".length);
   const boilerplate = [
     /EXTRATO DE CONTA/g, /DETALHE DOS MOVIMENTOS/g, /Data\s+Descrição\s+ID da operação\s+Valor\s+Saldo/g,
     /Saldo final: R\$ -?[\d.,]+/g, /Saldo inicial: R\$ -?[\d.,]+/g, /Entradas: R\$ -?[\d.,]+/g, /Saidas: R\$ -?[\d.,]+/g,
@@ -657,6 +665,10 @@ $("#inputPdf").addEventListener("change", async (e) => {
       for (let p = 1; p <= pdf.numPages; p++) {
         const conteudo = await (await pdf.getPage(p)).getTextContent();
         texto += conteudo.items.map((i) => i.str + (i.hasEOL ? "\n" : " ")).join("") + "\n";
+      }
+      if (!cfg.nomeExtrato) {
+        const mTit = texto.match(/EXTRATO DE CONTA\s+([A-Za-z\u00C0-\u00FA ]{5,60}?)\s+CPF/) || texto.match(/Transfer[\u00EAe]ncia recebida\s+([A-Z\u00C0-\u00DA][A-Z\u00C0-\u00DA ]{8,60})/);
+        if (mTit?.[1]) cfg.nomeExtrato = semAcento(mTit[1].trim().replace(/\s+/g, " ")).slice(0, 60);
       }
       const achadas = parsearTextoExtrato(texto);
       total += achadas.length;

@@ -73,6 +73,25 @@ apresenta a chave da família no cabeçalho `x-Bolso-key`; sem a chave, nada é 
 O SQL exato está em `supabase/migration-bolso-sync.sql`. A chave que aparece no código do
 app é a **pública** do projeto — sozinha, ela não lê dado nenhum.
 
+## E vale / adiantamento, como lanço? 💵
+
+Vale **não é dinheiro novo**: é um pedaço do salário que chega antes (e depois é
+descontado — no próximo pagamento entra menos). São **dois lançamentos separados**:
+
+1. **O vale entrando:**
+   - Se caí na conta do Mercado Pago (Pix da empresa), Ele já aparece quando você
+     importa o PDF. Confira/mude a categoria para **💵 Vale / adiantamento** (um toque —
+     o app aprende o nome da empresa para as próximas).
+   - Se recebeu em dinheiro ou em outra conta: botão **+** → **💰 Receber** → valor →
+     descrição ex.: *"Vale da fIrma"* → categoria **Vale / adiantamento**.
+2. **A conta que você pagou** continua sendo um gasto normal:
+   - Internet/luz/telefone → categoria **📄 Contas**; fatura → **💳 Cartão**.
+   - Pagou pelo Mercado Pago? Já vem no extrato. Pagou por fora? **+** → **💸 Gastar**.
+
+> Exemplo: vale de R$ 200, internet de R$ 102. Você lança *Receber R$ 200 (Vale)* e
+> *Gastar R$ 102 (Contas)*. Sobraram R$ 98 do vale — mas no dia do pagamento o salário
+> vem **R$ 200 menor**. O app mostra esse lembrete nas observações do mês.
+
 ## Todo mês (30 segundos)
 
 1. No app do Mercado Pago: **Extrato → escolher o mês → baixar o PDF**.
@@ -90,7 +109,8 @@ app é a **pública** do projeto — sozinha, ela não lê dado nenhum.
 ## Como o app decide a categoria (e como corrigir)
 
 Ele reconhece padrões do extrato (fatura do cartão, supermercados, Uber, internet, a
-"Reserva por gastos" de R$ 2 etc.) e considera a transferência mensal da outra conta e a
-AROM como **renda**. Errou alguma? Toque na movimentação na aba **Gastos** e troque a
+"Reserva por gastos" de R$ 2 etc.) e considera a transferência mensal vinda da outra conta
+como **renda**. O nome do titular (para reconhecer transferências entre contas próprias)
+é aprendido do cabeçalho do próprio PDF. Errou alguma? Toque na movimentação e troque a
 categoria — ele aprende aquele nome para sempre. A reserva automática e as transferências
 entre suas próprias contas **não** contam como gasto nos gráficos.
