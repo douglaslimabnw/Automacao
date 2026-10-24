@@ -1,0 +1,7 @@
+# Dados pessoais / financeiros — NUNCA subir para o GitHub
+*.pdf
+docs/dados-pessoais.json
+dados-pessoais.json
+transacoes.json
+backup-bolso*.json
+__pycache__/
