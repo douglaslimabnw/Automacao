@@ -83,8 +83,15 @@ let regras = ler("regras", {});          // {nome normalizado: categoria} — ap
 let cfg = ler("cfg", { renda: 0 });
 let mesSel = ler("mesSel", null);
 let filtroCat = "todas", termoBusca = "";
+let sync = ler("sync", null);            // {chave, meuNome, versao, ultimaSync} — família sincronizada
+let excluidas = ler("excluidas", []);    // [{chave, em}] transações apagadas (p/ apagar no outro celular também)
+let aplicandoRemoto = false, sincronizando = false, temPendencia = false, timerEnvio = null, ultimoErroSync = "";
 
-function salvarTudo() { salvar("tx", transacoes); salvar("metas", metas); salvar("fixas", fixas); salvar("regras", regras); salvar("cfg", cfg); if (mesSel) salvar("mesSel", mesSel); }
+function salvarTudo() {
+  salvar("tx", transacoes); salvar("metas", metas); salvar("fixas", fixas); salvar("regras", regras);
+  salvar("cfg", cfg); salvar("excluidas", excluidas); if (mesSel) salvar("mesSel", mesSel);
+  if (sync && !aplicandoRemoto) agendarEnvio();
+}
 
 function catDe(t) {
   const chave = semAcento(extrairNome(t.descricao));
@@ -248,7 +255,7 @@ function txHTML(t) {
   return `<div class="tx" data-id="${esc(t._uid)}">
     <div class="emoji">${CATS[c].emoji}</div>
     <div class="meio"><div class="desc">${esc(extrairNome(t.descricao) || t.descricao)}</div>
-    <div class="sub">${CATS[c].nome} · ${t.data.slice(8)}/${t.data.slice(5, 7)}</div></div>
+    <div class="sub">${CATS[c].nome} · ${t.data.slice(8)}/${t.data.slice(5, 7)}${t.por ? " · ✍️ " + esc(t.por) : ""}</div></div>
     <div class="valor ${t.valor < 0 ? "vermelho" : "verde"}">${sinal} ${fmt(Math.abs(t.valor))}</div></div>`;
 }
 
@@ -385,6 +392,7 @@ function renderBannerEspelho() {
 function render() {
   $("#mesAtual").textContent = nomeMes(mesSel);
   renderBannerEspelho();
+  renderSync();
   renderInicio(); renderGastos(); renderPlanejar();
 }
 
@@ -443,14 +451,14 @@ function abrirFicha(t) {
   $("#sheetConteudo").querySelectorAll("[data-cat-escolha]").forEach((b) => b.onclick = () => {
     document.querySelectorAll("[data-cat-escolha]").forEach((x) => x.classList.toggle("sel", x === b));
     regras[semAcento(nome)] = b.dataset.catEscolha;
-    t.categoria = b.dataset.catEscolha;
+    t.categoria = b.dataset.catEscolha; t.editadoEm = Date.now();
     salvarTudo(); render();
     toast(`✅ Categorizei “${esc(nome)}” como <strong>${CATS[b.dataset.catEscolha].nome}</strong> (e vou lembrar nas próximas).`);
   });
   $("#fichaOk").onclick = fecharSheet;
   $("#fichaExcluir").onclick = () => {
     if (confirm("Excluir esta movimentação?")) {
-      transacoes = transacoes.filter((x) => x !== t); salvarTudo(); fecharSheet(); render(); toast("Movimentação excluída.");
+      transacoes = transacoes.filter((x) => x !== t); excluidas.push({ chave: chaveTx(t), em: Date.now() }); salvarTudo(); fecharSheet(); render(); toast("Movimentação excluída.");
     }
   };
 }
@@ -489,7 +497,7 @@ function abrirAdicionar() {
     transacoes.push({
       id: "manual-" + Date.now(), _uid: "u" + Date.now() + Math.random().toString(36).slice(2, 7),
       data: $("#novaData").value || hoje, descricao: desc,
-      valor: tipo === "saida" ? -v : v, categoria: catSel, origem: "manual",
+      valor: tipo === "saida" ? -v : v, categoria: catSel, origem: "manual", editadoEm: Date.now(), ...(sync?.meuNome ? { por: sync.meuNome } : {}),
     });
     mesSel = mesDe($("#novaData").value || hoje);
     salvarTudo(); fecharSheet(); render(); toast("✅ Salvo!");
@@ -671,6 +679,198 @@ $("#inputPdf").addEventListener("change", async (e) => {
   } finally { e.target.value = ""; }
 });
 
+
+/* ═══════════ FAMÍLIA SINCRONIZADA (nuvem Supabase, opcional) ═══════════
+   Modelo simples e honesto: a "chave da família" é um segredo aleatório e
+   comprido que Vai no link do convite. Quem tem a chave, acessa — por isso
+   o convite deve ser enviado só para a família. No banco, nenhuma linha é
+   legível sem apresentar a chave (regra de segurança confere o cabeçalho).
+   A chave pública abaixo pode aparecer no código: ela sozinha não lê nada. */
+const SUPABASE_URL = "https://srpzthggplnacmpgewcp.supabase.co";
+const SUPABASE_CHAVE_PUBLICA = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNycHp0aGdncGxuYWNtcGdld2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMjM2NjcsImV4cCI6MjEwNzU5OTY2N30.e7mVm8Y9fzNd_Pg44Bb4pieWApJjh2P8J2V5td7aFsU";
+
+function chaveTx(t) { return `${t.id}|${t.valor}|${t.data}|${semAcento(extrairNome(t.descricao))}`; }
+function payloadAtual() { return { transacoes, metas, fixas, regras, renda: cfg.renda || 0, excluidas }; }
+function assinaturaEstado(pl) {
+  const chaves = (pl.transacoes || []).map((t) => chaveTx(t) + (t.editadoEm || "")).sort().join(";");
+  return chaves + "#" + JSON.stringify(pl.metas || {}) + "#" + JSON.stringify(pl.fixas || []) + "#" + JSON.stringify(pl.regras || {}) + "#" + (pl.renda || 0);
+}
+
+async function apiSync(metodo, caminho, corpo) {
+  const r = await fetch(SUPABASE_URL + "/rest/v1/Bolso_sync" + caminho, {
+    method: metodo,
+    headers: {
+      apikey: SUPABASE_CHAVE_PUBLICA,
+      Authorization: "Bearer " + SUPABASE_CHAVE_PUBLICA,
+      "Content-Type": "application/json",
+      "x-Bolso-key": sync.chave,
+      ...(metodo === "GET" ? {} : { Prefer: "return=representation" }),
+    },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.status === 204 ? null : r.json().catch(() => null);
+}
+
+/** Junta o que veio da nuvem com o que está neste aparelho (sem duplicar, sem perder). */
+function mesclarComRemoto(remoto) {
+  const assinaturaAntes = assinaturaEstado(payloadAtual());
+  const mapa = new Map(transacoes.map((t) => [chaveTx(t), t]));
+  for (const t of remoto.transacoes || []) {
+    const k = chaveTx(t);
+    const local = mapa.get(k);
+    if (!local || (t.editadoEm || 0) > (local.editadoEm || 0)) mapa.set(k, t);
+  }
+  const lapides = new Map(excluidas.map((e) => [e.chave, e.em]));
+  for (const e of remoto.excluidas || []) lapides.set(e.chave, Math.max(lapides.get(e.chave) || 0, e.em));
+  excluidas = [...lapides.entries()].map(([chave, em]) => ({ chave, em }));
+  // some o que foi apagado em qualquer celular (lápide), a não ser que tenha sido editado depois da exclusão
+  transacoes = [...mapa.values()].filter((t) => { const k = chaveTx(t); return !lapides.has(k) || (t.editadoEm || 0) > lapides.get(k); });
+  metas = { ...metas, ...(remoto.metas || {}) };
+  regras = { ...regras, ...(remoto.regras || {}) };
+  const nomesFixas = new Set(fixas.map((f) => semAcento(f.nome)));
+  for (const f of remoto.fixas || []) if (!nomesFixas.has(semAcento(f.nome))) fixas.push(f);
+  if (Number(remoto.renda) > 0) cfg.renda = Number(remoto.renda);
+  delete cfg.espelhoEm;
+  preparar();
+  return assinaturaEstado(payloadAtual()) !== assinaturaAntes;
+}
+
+function agendarEnvio() {
+  temPendencia = true; renderSync();
+  clearTimeout(timerEnvio);
+  timerEnvio = setTimeout(() => sincronizar("auto"), 4000);
+}
+
+async function sincronizar(motivo) {
+  if (!sync || sincronizando || navigator.onLine === false) return;
+  sincronizando = true; renderSync();
+  try {
+    const linhas = await apiSync("GET", `?household_key=eq.${encodeURIComponent(sync.chave)}&select=payload,versao,atualizado_por`);
+    const remoto = linhas?.[0] || null;
+    let mudouAqui = false;
+    if (remoto && remoto.versao !== sync.versao) {
+      mudouAqui = mesclarComRemoto(remoto.payload || {});
+      sync.versao = remoto.versao;
+      if (mudouAqui && motivo !== "criar" && motivo !== "entrar") toast(`🔄 Chegaram novidades${remoto.atualizado_por ? " de <strong>" + esc(remoto.atualizado_por) + "</strong>" : ""}!`);
+    }
+    const precisoEnviar = !remoto || assinaturaEstado(payloadAtual()) !== assinaturaEstado(remoto.payload || {});
+    if (precisoEnviar) {
+      const corpo = { household_key: sync.chave, payload: payloadAtual(), versao: (remoto?.versao || 0) + 1, atualizado_por: sync.meuNome || "", updated_at: new Date().toISOString() };
+      if (!remoto) {
+        const criadas = await apiSync("POST", "", corpo);
+        sync.versao = criadas?.[0]?.versao || 1;
+      } else {
+        const atualizadas = await apiSync("PATCH", `?household_key=eq.${encodeURIComponent(sync.chave)}&versao=eq.${remoto.versao}`, corpo);
+        if (!atualizadas?.length) { sincronizando = false; return sincronizar(motivo); } // outro celular enviou junto: junta e tenta de novo
+        sync.versao = atualizadas[0].versao;
+      }
+    }
+    temPendencia = false; ultimoErroSync = "";
+    sync.ultimaSync = Date.now();
+    salvar("sync", sync);
+    aplicandoRemoto = true; salvarTudo(); aplicandoRemoto = false;
+    render();
+    if (motivo === "manual") toast("✅ Tudo sincronizado com a família!");
+  } catch (e) {
+    ultimoErroSync = e.message || "sem internet";
+    renderSync();
+    if (motivo === "manual" || motivo === "criar" || motivo === "entrar") toast("⚠️ Não consegui sincronizar agora (" + esc(ultimoErroSync) + "). Confira a internet e tente 🔄.");
+  } finally {
+    sincronizando = false; renderSync();
+  }
+}
+
+function renderSync() {
+  const dot = $("#btnSyncTopo"), desc = $("#syncDesconectado"), conn = $("#syncConectado"), txt = $("#syncStatusTexto");
+  if (!dot || !desc || !conn) return;
+  if (!sync) { dot.hidden = true; desc.hidden = false; conn.hidden = true; return; }
+  dot.hidden = false; desc.hidden = true; conn.hidden = false;
+  const estado = ultimoErroSync ? "erro" : sincronizando ? "pensando" : "";
+  dot.className = "sync-topo " + estado;
+  dot.textContent = ultimoErroSync ? "☁️⚠️ família" : sincronizando ? "☁️… família" : "☁️ família ✓";
+  const quando = sync.ultimaSync ? new Date(sync.ultimaSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "ainda não";
+  txt.innerHTML = ultimoErroSync
+    ? `⚠️ Sem sincronizar (${esc(ultimoErroSync)}). Seus lançamentos ficam salvos aqui e sobem quando a internet voltar.`
+    : `☁️ Conectado como <strong>${esc(sync.meuNome || "você")}</strong> · última sincronização às ${quando}${temPendencia ? " · <em>enviando…</em>" : ""}`;
+}
+
+function gerarChaveFamilia() {
+  const b = new Uint8Array(24); crypto.getRandomValues(b);
+  return [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+function extrairChaveConvite(texto) {
+  const m = String(texto || "").match(/#familia=([A-Za-z0-9]{20,})/) || String(texto || "").trim().match(/^([a-f0-9]{40,})$/i);
+  return m ? m[1] : null;
+}
+async function enviarConvite() {
+  const link = location.origin + location.pathname + "#familia=" + sync.chave;
+  const texto = "Oi! 💑 Com este link você entra no nosso app de gastos (Bolso em Dia) e vê tudo atualizado comigo. É segredo nosso, não repasse. 🐷";
+  if (navigator.share) {
+    try { await navigator.share({ title: "Bolso em Dia — nossa família", text: texto + "\n" + link }); return; } catch { return; }
+  }
+  try { await navigator.clipboard.writeText(texto + "\n" + link); toast("💌 Convite copiado! Cole no WhatsApp <strong>só dela</strong>."); }
+  catch { prompt("Copie o convite e envie só para sua família:", texto + "\n" + link); }
+}
+
+function abrirCriarFamilia() {
+  abrirSheet(`
+    <h3>🔗 Criar nossa família</h3>
+    <p>Vou criar uma chave-secreta e enviar seus dados atuais para a nuvem da família. Depois basta mandar o convite para sua esposa.</p>
+    <label>Como você quer aparecer nos lançamentos?</label>
+    <input type="text" id="syncNome" placeholder="Ex.: Douglas" value="${esc(sync?.meuNome || "Douglas")}">
+    <button class="btn primario grande" id="btnConfirmarCriar" style="margin-top:14px">Criar e preparar convite</button>
+    <button class="btn texto" id="btnCancelarSync">Cancelar</button>`);
+  $("#btnCancelarSync").onclick = fecharSheet;
+  $("#btnConfirmarCriar").onclick = async () => {
+    const nome = $("#syncNome").value.trim() || "Eu";
+    fecharSheet();
+    sync = { chave: gerarChaveFamilia(), meuNome: nome, versao: 0 };
+    salvar("sync", sync); delete cfg.espelhoEm; renderSync();
+    toast("☁️ Criando a família e enviando seus dados…");
+    await sincronizar("criar");
+    if (!ultimoErroSync) { toast("🎉 Família criada! Agora envie o convite."); enviarConvite(); }
+  };
+}
+
+function abrirEntrarFamilia(chavePre) {
+  abrirSheet(`
+    <h3>🔑 Entrar na família</h3>
+    <p>${chavePre ? "Você abriu um convite! 🎉" : "Cole o convite que você recebeu."} Vou Baixar os dados da família para este celular (e juntar com o que já houver aqui, sem apagar nada).</p>
+    ${chavePre ? "" : `<label>Convite (link ou código)</label><input type="text" id="syncConvite" placeholder="Cole aqui o link do convite">`}
+    <label>Como você quer aparecer nos lançamentos?</label>
+    <input type="text" id="syncNomeEntrar" placeholder="Seu primeiro nome">
+    <button class="btn primario grande" id="btnConfirmarEntrar" style="margin-top:14px">Entrar e sincronizar</button>
+    <button class="btn texto" id="btnCancelarEntrar">Agora não</button>`);
+  $("#btnCancelarEntrar").onclick = fecharSheet;
+  $("#btnConfirmarEntrar").onclick = async () => {
+    const chave = chavePre || extrairChaveConvite($("#syncConvite")?.value);
+    const nome = $("#syncNomeEntrar").value.trim() || "Família";
+    if (!chave) { toast("⚠️ Não reconheci esse convite. Confira se colou o link inteiro."); return; }
+    fecharSheet();
+    sync = { chave, meuNome: nome, versao: 0 };
+    salvar("sync", sync); delete cfg.espelhoEm; renderSync();
+    toast("☁️ Baixando os dados da família…");
+    await sincronizar("entrar");
+    if (!ultimoErroSync) { irParaAba("inicio"); toast(`🎉 Pronto, ${esc(nome)}! Você está vendo os gastos da família, atualizados.`); }
+  };
+}
+
+$("#btnCriarFamilia").onclick = abrirCriarFamilia;
+$("#btnEntrarFamilia").onclick = () => abrirEntrarFamilia(null);
+$("#btnConvidar").onclick = enviarConvite;
+$("#btnSincronizarAgora").onclick = () => sincronizar("manual");
+$("#btnSyncTopo").onclick = () => sincronizar("manual");
+$("#btnDesconectarSync").onclick = () => {
+  if (confirm("Desconectar ESTE aparelho da família? Os dados continuam aqui e na nuvem, só param de atualizar sozinhos.")) {
+    sync = null; localStorage.removeItem("Bolso.sync"); temPendencia = false; renderSync();
+    toast("Desconectado. Seus dados continuam neste celular.");
+  }
+};
+setInterval(() => { if (sync && document.visibilityState === "visible") sincronizar("poll"); }, 60000);
+document.addEventListener("visibilitychange", () => { if (sync && document.visibilityState === "visible") sincronizar("poll"); });
+window.addEventListener("online", () => { if (sync) sincronizar("poll"); });
+
 /* ---------- início ---------- */
 function preparar() {
   transacoes.forEach((t, i) => { t._uid = t._uid || "u" + i + "-" + String(t.id); t.categoria = t.categoria || categorizar(t.descricao, t.valor); });
@@ -701,6 +901,10 @@ async function iniciar() {
   }
   salvarTudo();
   render();
+  const chaveConvite = extrairChaveConvite(location.hash);
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search); // tira a chave da barra de endereço
+  if (chaveConvite && sync?.chave !== chaveConvite) setTimeout(() => abrirEntrarFamilia(chaveConvite), 500);
+  else if (sync) sincronizar("inicio");
   navigator.serviceWorker?.register("sw.js").catch(() => {});
 }
 

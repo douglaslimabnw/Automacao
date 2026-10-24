@@ -15,6 +15,7 @@
 
 <header>
   <div class="logo">🐷 Bolso em Dia</div>
+  <button id="btnSyncTopo" class="sync-topo" hidden title="Família sincronizada — tocar para sincronizar">☁️</button>
   <div class="mes-nav">
     <button id="mesAnt" aria-label="Mês anterior">←</button>
     <strong id="mesAtual">—</strong>
@@ -111,15 +112,27 @@
 
   <!-- ═══ MAIS ═══ -->
   <section id="aba-mais" class="aba">
-    <div class="card destaque2">
-      <h3>💑 Compartilhar com minha esposa / família</h3>
-      <p>Para ela <strong>ver os mesmos meses, gráficos e planos</strong> no celular dela:</p>
-      <button class="btn primario grande" id="btnCompartilharDados" type="button">📤 Enviar meus dados para ela</button>
-      <p class="nota"><strong>Como funciona:</strong> 1) toque no botão verde e envie o arquivo pelo WhatsApp ·
-      2) ela abre o Bolso em Dia no celular dela · 3) vai em <em>Mais → Restaurar backup</em> e escolhe o arquivo.
-      Pronto: ela vê tudo igualzinho. É uma “foto” do momento — quando quiser atualizar, envie de novo (leva 10 segundos).</p>
-      <button class="btn" id="btnCompartilharLink">📲 Enviar também o link do app</button>
-      <button class="btn" id="btnCompartilharResumo">📝 Mandar só o resumo do mês (texto no WhatsApp)</button>
+    <div class="card destaque2" id="cardFamilia">
+      <h3>💑 Família sincronizada</h3>
+      <div id="syncDesconectado">
+        <p>Para sua esposa <strong>ver tudo atualizado sozinho</strong> no celular dela — e também poder lançar gastos:</p>
+        <button class="btn primario grande" id="btnCriarFamilia">🔗 Criar nossa família e convidar</button>
+        <button class="btn grande" id="btnEntrarFamilia">🔑 Recebi um convite</button>
+        <p class="nota">A partir daí, os dados ficam guardados <strong>também</strong> numa nuvem só de vocês, protegida por um <strong>link-secreto</strong>. O que mudar em um celular aparece no outro em até 1 minuto.</p>
+      </div>
+      <div id="syncConectado" hidden>
+        <p id="syncStatusTexto" class="nota"></p>
+        <button class="btn primario grande" id="btnConvidar">💌 Enviar convite para a família</button>
+        <button class="btn" id="btnSincronizarAgora">🔄 Sincronizar agora</button>
+        <button class="btn" id="btnDesconectarSync">Desconectar deste aparelho</button>
+        <p class="nota">🔒 <strong>Trate o convite como uma chave da casa:</strong> quem tiver o link vê (e pode lançar) os gastos da família. Envie <strong>só para sua esposa/família</strong>, nunca em grupos.</p>
+      </div>
+      <hr>
+      <p><strong>Ou enviar só uma “foto” de agora</strong> (sem sincronizar depois):</p>
+      <button class="btn" id="btnCompartilharDados">📤 Enviar arquivo dos meus dados</button>
+      <button class="btn" id="btnCompartilharLink">📲 Enviar o link do app</button>
+      <button class="btn" id="btnCompartilharResumo">📝 Resumo do mês no WhatsApp</button>
+      <p class="nota">Quem recebe o arquivo usa <em>Mais → Restaurar backup</em> no celular dela e vê tudo igual, naquela data.</p>
     </div>
 
     <div class="card">

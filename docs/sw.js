@@ -1,6 +1,6 @@
 /* Bolso em Dia — service worker: guarda o app para funcionar sem internet.
    Os DADOS do usuário ficam no localStorage, nunca neste cache. */
-const VERSAO = "Bolso-v1";
+const VERSAO = "Bolso-v2";
 const ARQUIVOS = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

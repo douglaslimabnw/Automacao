@@ -19,7 +19,10 @@ Um app **simples**, feito para o celular, para entender e planejar os gastos men
 
 ## 🔒 Privacidade (importante)
 
-- Os dados ficam **somente no aparelho** (no armazenamento do navegador/app).
+- Por padrão, os dados ficam **somente no aparelho** (no armazenamento do navegador/app).
+  Só vão para a nuvem se você ativar a **Família sincronizada** (abaixo) — e mesmo assim
+  ficam numa tabela do seu próprio Supabase, legível apenas por quem tem a chave-secreta
+  da família (o link do convite).
 - **Nenhum dado financeiro faz parte deste repositório** — PDFs e arquivos de dados
   estão bloqueados no `.gitignore`.
 - Por isso, mesmo que o repositório seja público para publicar o app, seus gastos
@@ -40,17 +43,35 @@ Com o GitHub Pages:
 > Alternativa sem publicar: qualquer hospedagem estática (Netlify, Vercel, Cloudflare Pages)
 > apontando para a pasta `docs/` funciona.
 
-## Compartilhar com a família 💑
+## Família sincronizada 💑 (automático, sem enviar arquivo)
 
-Na aba **Mais → Compartilhar com minha esposa / família**:
+Na aba **Mais → Família sincronizada**:
 
-1. Toque em **📤 Enviar meus dados para ela** e envie o arquivo pelo WhatsApp.
-2. A outra pessoa abre o app no celular dela (mesmo endereço, botão **📲 Enviar também o link do app**).
-3. Ela Vai em **Mais → Restaurar backup** e escolher o arquivo recebido.
+1. No seu celular: **🔗 Criar nossa família e convidar** → digo seu nome → ele cria uma
+   chave-secreta, envia seus dados para a nuvem e prepara o convite.
+2. Envie o **convite (link)** pelo WhatsApp **só para sua esposa/família** — o link é a
+   "chave da casa": quem o tiver vê e pode lançar gastos.
+3. Ela toca no link (abre o app), confirma o nome dela — e já vê **tudo igual**: meses,
+   gráficos, insights e planos.
 
-Ela passa a ver **exatamente os mesmos meses, gráficos e planos**, com um aviso no topo
-mostrando a data da última atualização recebida. É uma "foto" do momento: para atualizar,
-basta enviar de novo. Dá também para mandar só o **resumo do mês em texto** (📝) no WhatsApp.
+A partir daí, atualização é automática: lançou num celular, aparece no outro em até ~1
+minuto (ou na hora em **🔄 Sincronizar agora**). Gastos digitados à mão mostram quem
+lançou (✍️ nome). Sem internet, tudo fica salvo no aparelho e sobe quando conectar.
+
+### Sem sincronizar (modo "foto")
+
+No mesmo card: **📤 Enviar arquivo dos meus dados** manda um arquivo pelo WhatsApp;
+a pessoa usa **Mais → Restaurar backup** e vê tudo naquela data. Também há o
+**📝 resumo do mês em texto** pronto para colar no WhatsApp.
+
+### Para quem mexe na parte técnica
+
+A nuvem é o projeto Supabase gratuito **appfinanceiro** (São Paulo). A tabela
+`public.Bolso_sync` guarda uma linha por família (`payload` JSON + `versao` para não
+sobrescrever edição simultânea). A regra de segurança (RLS) só libera a linha para quem
+apresenta a chave da família no cabeçalho `x-Bolso-key`; sem a chave, nada é legível.
+O SQL exato está em `supabase/migration-bolso-sync.sql`. A chave que aparece no código do
+app é a **pública** do projeto — sozinha, ela não lê dado nenhum.
 
 ## Todo mês (30 segundos)
 
@@ -64,6 +85,7 @@ basta enviar de novo. Dá também para mandar só o **resumo do mês em texto** 
 | `docs/index.html` · `docs/app.js` · `docs/style.css` | O aplicativo (HTML/CSS/JS puro, sem compilar nada) |
 | `docs/manifest.webmanifest` · `docs/sw.js` | O que permite instalar e usar offline (PWA) |
 | `importar_extrato.py` | Versão para computador: converte o PDF do Mercado Pago em JSON (`python3 importar_extrato.py extrato.pdf > transacoes.json`, precisa de `pip install pymupdf`) |
+| `supabase/migration-bolso-sync.sql` | SQL que cria a tabela da Família sincronizada (aplicado no projeto appfinanceiro) |
 
 ## Como o app decide a categoria (e como corrigir)
 
