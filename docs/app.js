@@ -373,8 +373,18 @@ function renderPlanejar() {
   }).join("");
 }
 
+function renderBannerEspelho() {
+  const b = $("#bannerEspelho");
+  if (!cfg.espelhoEm) { b.hidden = true; return; }
+  const quando = new Date(cfg.espelhoEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  b.hidden = false;
+  b.innerHTML = `👀 Você está vendo os dados compartilhados em <strong>${quando}</strong>. Para atualizar, Peça um novo envio (é rapidinho). <button class="btn texto" id="btnSairEspelho">Estou no meu próprio app</button>`;
+  b.querySelector("#btnSairEspelho").onclick = () => { delete cfg.espelhoEm; salvarTudo(); renderBannerEspelho(); };
+}
+
 function render() {
   $("#mesAtual").textContent = nomeMes(mesSel);
+  renderBannerEspelho();
   renderInicio(); renderGastos(); renderPlanejar();
 }
 
@@ -519,13 +529,53 @@ $("#aba-planejar").addEventListener("click", (e) => {
   }
 });
 
-/* Backup / apagar */
-$("#btnExportar").onclick = () => {
-  const dados = JSON.stringify({ transacoes, metas, fixas, regras, cfg }, null, 1);
+/* Backup / compartilhar */
+function montarBackup() {
+  return JSON.stringify({ app: "Bolso em Dia", versao: 1, exportadoEm: new Date().toISOString(), transacoes, metas, fixas, regras, cfg }, null, 1);
+}
+function baixarBackup(aviso) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([dados], { type: "application/json" }));
+  a.href = URL.createObjectURL(new Blob([montarBackup()], { type: "application/json" }));
   a.download = "backup-bolso-em-dia.json"; a.click(); URL.revokeObjectURL(a.href);
-  toast("⬇️ Backup baixado. Guarde em lugar seguro!");
+  toast(aviso || "⬇️ Arquivo baixado. Envie pelo WhatsApp e ela usa em Mais → Restaurar backup.");
+}
+$("#btnExportar").onclick = () => baixarBackup("⬇️ Backup baixado. Guarde em lugar seguro!");
+$("#btnCompartilharDados").onclick = async () => {
+  const arquivo = new File([montarBackup()], "backup-bolso-em-dia.json", { type: "application/json" });
+  if (navigator.canShare?.({ files: [arquivo] })) {
+    try { await navigator.share({ files: [arquivo], title: "Bolso em Dia — nossos gastos" }); } catch { /* cancelou o envio */ }
+    return;
+  }
+  baixarBackup();
+};
+$("#btnCompartilharLink").onclick = async () => {
+  const url = location.origin + location.pathname;
+  if (navigator.share) {
+    try { await navigator.share({ title: "Bolso em Dia — nossos gastos", text: "Abre este link e instala o app dos nossos gastos 🐷", url }); } catch { /* cancelou */ }
+    return;
+  }
+  try { await navigator.clipboard.writeText(url); toast("🔗 Link copiado! Cole no WhatsApp dela."); }
+  catch { toast("Copie o endereço da barra do navegador e envie para ela."); }
+};
+$("#btnCompartilharResumo").onclick = async () => {
+  const tx = doMes(mesSel);
+  const entrou = tx.filter((t) => t.valor > 0).reduce((sm, t) => sm + t.valor, 0);
+  const saiu = tx.filter((t) => t.valor < 0).reduce((sm, t) => sm + Math.abs(t.valor), 0);
+  const top = Object.entries(somarCats(tx, ehGasto))
+    .map(([c, v]) => ({ c, valor: Math.abs(v.total) })).sort((a, b) => b.valor - a.valor).slice(0, 4);
+  const texto = [
+    `🐷 *Bolso em Dia — ${nomeMes(mesSel)}*`,
+    `💰 Entrou: ${fmt(entrou)}`,
+    `💸 Saiu: ${fmt(saiu)}`,
+    entrou - saiu >= 0 ? `🎉 Sobrou: ${fmt(entrou - saiu)}` : `🔴 Faltou: ${fmt(Math.abs(entrou - saiu))}`,
+    ``, `Maiores gastos:`,
+    ...top.map((i) => `${CATS[i.c].emoji} ${CATS[i.c].nome}: ${fmt(i.valor)}`),
+  ].join("\n");
+  if (navigator.share) {
+    try { await navigator.share({ title: "Resumo do mês", text: texto }); } catch { /* cancelou */ }
+    return;
+  }
+  window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank");
 };
 $("#btnImportarBackup").onclick = () => $("#inputBackup").click();
 $("#inputBackup").addEventListener("change", async (e) => {
@@ -534,8 +584,9 @@ $("#inputBackup").addEventListener("change", async (e) => {
     if (!Array.isArray(dados.transacoes)) throw new Error("formato");
     transacoes = dados.transacoes; metas = dados.metas || {}; fixas = dados.fixas || [];
     regras = dados.regras || {}; cfg = dados.cfg || { renda: 0 };
+    cfg.espelhoEm = dados.exportadoEm || new Date().toISOString(); // modo "vendo dados de outra pessoa"
     preparar(); salvarTudo(); render(); irParaAba("inicio");
-    toast("✅ Backup restaurado!");
+    toast("✅ Pronto! Agora você está vendo os mesmos dados.");
   } catch { toast("⚠️ Não consegui ler esse arquivo de backup."); }
   e.target.value = "";
 });
@@ -610,6 +661,7 @@ $("#inputPdf").addEventListener("change", async (e) => {
       }
     }
     if (!total) { st.textContent = "⚠️ Não encontrei transações nesse PDF. Confira se é o extrato de conta do Mercado Pago."; return; }
+    delete cfg.espelhoEm; // quem importa o proprio extrato e o "dono" dos dados
     preparar(); salvarTudo(); render(); irParaAba("inicio");
     st.textContent = "";
     toast(`🎉 Pronto! <strong>${novas} transações novas</strong> importadas${novas < total ? ` (${total - novas} já existiam)` : ""}.`);

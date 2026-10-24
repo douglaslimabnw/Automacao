@@ -40,6 +40,18 @@ Com o GitHub Pages:
 > Alternativa sem publicar: qualquer hospedagem estática (Netlify, Vercel, Cloudflare Pages)
 > apontando para a pasta `docs/` funciona.
 
+## Compartilhar com a família 💑
+
+Na aba **Mais → Compartilhar com minha esposa / família**:
+
+1. Toque em **📤 Enviar meus dados para ela** e envie o arquivo pelo WhatsApp.
+2. A outra pessoa abre o app no celular dela (mesmo endereço, botão **📲 Enviar também o link do app**).
+3. Ela Vai em **Mais → Restaurar backup** e escolher o arquivo recebido.
+
+Ela passa a ver **exatamente os mesmos meses, gráficos e planos**, com um aviso no topo
+mostrando a data da última atualização recebida. É uma "foto" do momento: para atualizar,
+basta enviar de novo. Dá também para mandar só o **resumo do mês em texto** (📝) no WhatsApp.
+
 ## Todo mês (30 segundos)
 
 1. No app do Mercado Pago: **Extrato → escolher o mês → baixar o PDF**.
