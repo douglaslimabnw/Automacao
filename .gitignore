@@ -5,3 +5,4 @@ dados-pessoais.json
 transacoes.json
 backup-bolso*.json
 __pycache__/
+node_modules/
