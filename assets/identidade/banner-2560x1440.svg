@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2560 1440" width="2560" height="1440">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bannerBg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#141A2E" />
+      <stop offset="55%" stop-color="#0B0E17" />
+      <stop offset="100%" stop-color="#05070C" />
+    </radialGradient>
+
+    <!-- Glowing Accents -->
+    <radialGradient id="glowViolet" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7C5CFF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#0B0E17" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="glowGold" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FBBF24" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#0B0E17" stop-opacity="0" />
+    </radialGradient>
+
+    <linearGradient id="violetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9D85FF" />
+      <stop offset="100%" stop-color="#7C5CFF" />
+    </linearGradient>
+
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#FBBF24" />
+    </linearGradient>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="2560" height="1440" fill="url(#bannerBg)" />
+
+  <!-- Abstract TV-Background Neural Network Graphic (Outside Safe Zone) -->
+  <g opacity="0.15">
+    <circle cx="300" cy="300" r="250" fill="url(#glowViolet)" />
+    <circle cx="2260" cy="1140" r="300" fill="url(#glowViolet)" />
+    <path d="M 100,200 Q 600,100 1200,300 T 2400,200" fill="none" stroke="#7C5CFF" stroke-width="2" stroke-dasharray="10 15" />
+    <path d="M 200,1200 Q 800,1350 1400,1150 T 2300,1300" fill="none" stroke="#7C5CFF" stroke-width="2" stroke-dasharray="8 12" />
+  </g>
+
+  <!-- Subtle Safe Zone Ambient Glows -->
+  <circle cx="1280" cy="720" r="500" fill="url(#glowViolet)" />
+  <circle cx="1280" cy="720" r="300" fill="url(#glowGold)" />
+
+  <!-- SAFE ZONE CONTAINER (1546 x 423 centered at x=507, y=508.5) -->
+  <!-- Subtle outline for visual reference during editing -->
+  <rect x="507" y="508.5" width="1546" height="423" fill="none" stroke="#7C5CFF" stroke-width="1" stroke-dasharray="6 6" opacity="0.25" />
+
+  <!-- INNER SAFE ZONE CONTENT -->
+  <g id="safe-zone-content">
+    <!-- Center Logo Icon Symbol (Scaled for Banner) -->
+    <g transform="translate(710, 720) scale(0.65)">
+      <!-- Synapse Lines -->
+      <path d="M-110,-40 C-110,-120 -20,-150 0,-150 C20,-150 110,-120 110,-40 C110,30 50,70 0,130 C-50,70 -110,30 -110,-40 Z" fill="none" stroke="url(#violetGlow)" stroke-width="12" stroke-linecap="round" />
+      <path d="M-40,-130 C-90,-110 -120,-60 -110,-10 C-105,40 -50,60 -20,100" fill="none" stroke="url(#violetGlow)" stroke-width="8" stroke-linecap="round" />
+      <path d="M-70,-80 C-100,-40 -80,10 -40,40" fill="none" stroke="url(#goldAccent)" stroke-width="6" fill-linecap="round" />
+      <path d="M40,-130 C90,-110 120,-60 110,-10 C105,40 50,60 20,100" fill="none" stroke="url(#violetGlow)" stroke-width="8" stroke-linecap="round" />
+      <path d="M70,-80 C100,-40 80,10 40,40" fill="none" stroke="#F5F7FF" stroke-width="6" stroke-linecap="round" opacity="0.9" />
+      <circle cx="0" cy="-30" r="18" fill="url(#goldAccent)" />
+      <circle cx="-110" cy="-40" r="10" fill="#7C5CFF" />
+      <circle cx="110" cy="-40" r="10" fill="#7C5CFF" />
+      <circle cx="0" cy="-150" r="12" fill="#F5F7FF" />
+      <circle cx="0" cy="130" r="10" fill="url(#goldAccent)" />
+    </g>
+
+    <!-- Channel Name -->
+    <text x="830" y="685" fill="#F5F7FF" font-family="'Montserrat', 'Sora', sans-serif" font-weight="900" font-size="54" letter-spacing="4">
+      A CADA DIA, <tspan fill="#FBBF24">APRENDER</tspan>
+    </text>
+
+    <!-- Tagline -->
+    <text x="830" y="740" fill="#97A2BD" font-family="'Inter', sans-serif" font-weight="600" font-size="24" letter-spacing="1">
+      Entender a própria mente e o comportamento humano, um fato por dia.
+    </text>
+
+    <!-- Badges / Value Props -->
+    <g transform="translate(830, 775)">
+      <!-- Pill 1 -->
+      <rect x="0" y="0" width="280" height="38" rx="19" fill="#141A2E" stroke="#7C5CFF" stroke-width="1.5" />
+      <text x="140" y="25" text-anchor="middle" fill="#F5F7FF" font-family="'Inter', sans-serif" font-weight="700" font-size="14" letter-spacing="1">
+        🧠 PSICOLOGIA &amp; CIÊNCIA
+      </text>
+
+      <!-- Pill 2 -->
+      <rect x="295" y="0" width="260" height="38" rx="19" fill="#141A2E" stroke="#FBBF24" stroke-width="1.5" />
+      <text x="425" y="25" text-anchor="middle" fill="#FBBF24" font-family="'Inter', sans-serif" font-weight="700" font-size="14" letter-spacing="1">
+        ⚡ SEM JARGÃO, SEM TÉDIO
+      </text>
+    </g>
+  </g>
+</svg>

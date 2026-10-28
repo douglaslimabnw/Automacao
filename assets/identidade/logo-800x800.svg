@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="65%" fx="50%" fy="45%">
+      <stop offset="0%" stop-color="#19223D" />
+      <stop offset="60%" stop-color="#0B0E17" />
+      <stop offset="100%" stop-color="#05070C" />
+    </radialGradient>
+
+    <!-- Symbol Glow Gradient -->
+    <linearGradient id="violetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9D85FF" />
+      <stop offset="50%" stop-color="#7C5CFF" />
+      <stop offset="100%" stop-color="#5B38E8" />
+    </linearGradient>
+
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#FBBF24" />
+    </linearGradient>
+
+    <!-- Filters for Glow Effects -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="800" fill="url(#bgGrad)" />
+
+  <!-- Outer Ring Accent -->
+  <circle cx="400" cy="360" r="230" fill="none" stroke="#7C5CFF" stroke-width="3" stroke-dasharray="12 12" opacity="0.4" />
+  <circle cx="400" cy="360" r="210" fill="none" stroke="url(#violetGlow)" stroke-width="1.5" opacity="0.2" />
+
+  <!-- Stylized Brain / Mind Network Icon -->
+  <g transform="translate(400, 360)" filter="url(#glow)">
+    <!-- Central Glowing Synapse Lines -->
+    <path d="M-110,-40 C-110,-120 -20,-150 0,-150 C20,-150 110,-120 110,-40 C110,30 50,70 0,130 C-50,70 -110,30 -110,-40 Z" fill="none" stroke="url(#violetGlow)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Left Brain Hemisphere Arc -->
+    <path d="M-40,-130 C-90,-110 -120,-60 -110,-10 C-105,40 -50,60 -20,100" fill="none" stroke="url(#violetGlow)" stroke-width="8" stroke-linecap="round" />
+    <path d="M-70,-80 C-100,-40 -80,10 -40,40" fill="none" stroke="url(#goldAccent)" stroke-width="6" stroke-linecap="round" />
+
+    <!-- Right Brain Hemisphere Arc -->
+    <path d="M40,-130 C90,-110 120,-60 110,-10 C105,40 50,60 20,100" fill="none" stroke="url(#violetGlow)" stroke-width="8" stroke-linecap="round" />
+    <path d="M70,-80 C100,-40 80,10 40,40" fill="none" stroke="#F5F7FF" stroke-width="6" stroke-linecap="round" opacity="0.9" />
+
+    <!-- Central Spark / Core Node -->
+    <circle cx="0" cy="-30" r="18" fill="url(#goldAccent)" />
+    <circle cx="0" cy="-30" r="28" fill="none" stroke="#FBBF24" stroke-width="3" opacity="0.6" />
+
+    <!-- Synapse Nodes -->
+    <circle cx="-110" cy="-40" r="10" fill="#7C5CFF" />
+    <circle cx="110" cy="-40" r="10" fill="#7C5CFF" />
+    <circle cx="0" cy="-150" r="12" fill="#F5F7FF" />
+    <circle cx="-60" cy="80" r="8" fill="#7C5CFF" />
+    <circle cx="60" cy="80" r="8" fill="#7C5CFF" />
+    <circle cx="0" cy="130" r="10" fill="url(#goldAccent)" />
+  </g>
+
+  <!-- Brand Typography -->
+  <text x="400" y="670" text-anchor="middle" fill="#F5F7FF" font-family="'Montserrat', 'Sora', sans-serif" font-weight="900" font-size="42" letter-spacing="4">
+    A CADA DIA
+  </text>
+  <text x="400" y="725" text-anchor="middle" fill="#FBBF24" font-family="'Montserrat', 'Sora', sans-serif" font-weight="800" font-size="34" letter-spacing="8">
+    APRENDER
+  </text>
+</svg>

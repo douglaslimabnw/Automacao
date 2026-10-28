@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <!-- Dark Textured Gradient -->
+    <radialGradient id="thumbBg" cx="30%" cy="40%" r="85%">
+      <stop offset="0%" stop-color="#141A2E" />
+      <stop offset="60%" stop-color="#0B0E17" />
+      <stop offset="100%" stop-color="#05070C" />
+    </radialGradient>
+
+    <!-- Impact Text Dropshadow -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="4" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.9" />
+    </filter>
+
+    <linearGradient id="redImpact" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF5D5D" />
+      <stop offset="100%" stop-color="#EF4444" />
+    </linearGradient>
+
+    <linearGradient id="yellowImpact" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#FBBF24" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="720" fill="url(#thumbBg)" />
+
+  <!-- Accent Vignette Glows -->
+  <circle cx="1000" cy="360" r="350" fill="#7C5CFF" opacity="0.18" />
+  <circle cx="250" cy="500" r="300" fill="#EF4444" opacity="0.12" />
+
+  <!-- Violet Outer Brand Frame -->
+  <rect x="12" y="12" width="1256" height="696" rx="8" fill="none" stroke="#7C5CFF" stroke-width="4" opacity="0.6" />
+
+  <!-- RIGHT SIDE: Visual Focus Area (Conceptual / Stylized Metaphor Image Holder) -->
+  <g id="illustration-holder" transform="translate(850, 360)">
+    <!-- Placeholder Stylized Metaphor (e.g., Glowing Mind / Silhouette) -->
+    <circle cx="0" cy="0" r="220" fill="none" stroke="#7C5CFF" stroke-width="3" stroke-dasharray="15 15" opacity="0.4" />
+    <circle cx="0" cy="0" r="180" fill="#141A2E" stroke="#9D85FF" stroke-width="4" opacity="0.8" />
+
+    <!-- Metaphor Symbol Placeholder -->
+    <path d="M-80,-20 C-80,-90 -20,-110 0,-110 C20,-110 80,-90 80,-20 C80,30 40,60 0,100 C-40,60 -80,30 -80,-20 Z" fill="none" stroke="#FBBF24" stroke-width="10" stroke-linecap="round" />
+    <circle cx="0" cy="-20" r="20" fill="#FBBF24" />
+
+    <text x="0" y="240" text-anchor="middle" fill="#97A2BD" font-family="'Inter', sans-serif" font-weight="600" font-size="18" letter-spacing="1">
+      [ Ilustração / Metáfora Autoral sem rosto ]
+    </text>
+  </g>
+
+  <!-- LEFT SIDE: High-Contrast Headline (Rule: 3 White Words + 1 Red/Yellow Impact Word) -->
+  <g id="thumbnail-typography" transform="translate(90, 160)" filter="url(#dropShadow)">
+    <!-- Small Category / Authority Badge -->
+    <rect x="0" y="0" width="220" height="42" rx="8" fill="#7C5CFF" />
+    <text x="110" y="27" text-anchor="middle" fill="#F5F7FF" font-family="'Montserrat', sans-serif" font-weight="800" font-size="18" letter-spacing="2">
+      TÉCNICA DO FBI
+    </text>
+
+    <!-- Line 1: White Montserrat Text (Max 3 words) -->
+    <text x="0" y="160" fill="#F5F7FF" font-family="'Montserrat', sans-serif" font-weight="900" font-size="82" letter-spacing="1">
+      FAÇA AS PESSOAS
+    </text>
+
+    <!-- Line 2: 1 Red/Yellow Impact Word -->
+    <text x="0" y="270" fill="url(#yellowImpact)" font-family="'Montserrat', sans-serif" font-weight="900" font-size="105" letter-spacing="2">
+      FALAREM!
+    </text>
+
+    <!-- Supporting Badge / Curiosity Hook -->
+    <g transform="translate(0, 320)">
+      <rect x="0" y="0" width="380" height="46" rx="6" fill="#141A2E" stroke="#FBBF24" stroke-width="2" />
+      <text x="190" y="30" text-anchor="middle" fill="#F5F7FF" font-family="'Inter', sans-serif" font-weight="700" font-size="20">
+        🤫 Sem que elas percebam
+      </text>
+    </g>
+  </g>
+
+  <!-- Brand Signature Watermark Logo (Bottom Right) -->
+  <g transform="translate(1200, 650) scale(0.25)">
+    <circle cx="0" cy="0" r="80" fill="#0B0E17" stroke="#7C5CFF" stroke-width="4" />
+    <circle cx="0" cy="0" r="30" fill="#FBBF24" />
+  </g>
+</svg>
