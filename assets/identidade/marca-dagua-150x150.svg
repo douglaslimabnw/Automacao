@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150">
+  <defs>
+    <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9D85FF" />
+      <stop offset="100%" stop-color="#7C5CFF" />
+    </linearGradient>
+
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#FBBF24" />
+    </linearGradient>
+
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Transparent Background (No background rect) -->
+
+  <!-- Watermark Brain/Synapse Symbol -->
+  <g transform="translate(75, 75) scale(0.42)" filter="url(#subtleGlow)">
+    <!-- Outer brain boundary -->
+    <path d="M-110,-40 C-110,-120 -20,-150 0,-150 C20,-150 110,-120 110,-40 C110,30 50,70 0,130 C-50,70 -110,30 -110,-40 Z" fill="none" stroke="url(#violetGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Brain Arcs -->
+    <path d="M-40,-130 C-90,-110 -120,-60 -110,-10 C-105,40 -50,60 -20,100" fill="none" stroke="url(#violetGrad)" stroke-width="10" stroke-linecap="round" />
+    <path d="M-70,-80 C-100,-40 -80,10 -40,40" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round" />
+
+    <path d="M40,-130 C90,-110 120,-60 110,-10 C105,40 50,60 20,100" fill="none" stroke="url(#violetGrad)" stroke-width="10" stroke-linecap="round" />
+    <path d="M70,-80 C100,-40 80,10 40,40" fill="none" stroke="#F5F7FF" stroke-width="8" stroke-linecap="round" opacity="0.9" />
+
+    <!-- Spark Center -->
+    <circle cx="0" cy="-30" r="22" fill="url(#goldGrad)" />
+
+    <!-- Nodes -->
+    <circle cx="-110" cy="-40" r="12" fill="#7C5CFF" />
+    <circle cx="110" cy="-40" r="12" fill="#7C5CFF" />
+    <circle cx="0" cy="-150" r="14" fill="#F5F7FF" />
+    <circle cx="0" cy="130" r="12" fill="url(#goldGrad)" />
+  </g>
+</svg>
