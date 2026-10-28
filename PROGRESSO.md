@@ -6,8 +6,8 @@
 ## 🧭 Onde você está agora
 
 - **Etapa atual:** Fase 1 — Estratégia e canal (Dias 1–7)
-- **Próxima ação:** Dia 6 — Criar e otimizar o canal na conta escolhida
-- **Dias concluídos:** 5/90 (Dias 1–5 ✅) · Dia 6 em andamento
+- **Próxima ação:** Dia 7 — Regras do jogo: diretrizes e configurações
+- **Dias concluídos:** 6/90 (Dias 1–6 ✅) · Dia 7 em andamento
 - Já feito:
   - Canal de marca novo criado com o nome "A Cada Dia, Aprender" ✅
   - Handle @ACadaDiaAprender reservado ✅
@@ -15,7 +15,8 @@
   - Nicho travado: psicologia e comportamento humano ✅
   - Auditoria de status: sem strikes; Standard + Intermediate features habilitadas (thumbnails liberadas) ✅
   - Inteligência competitiva do Dia 2 concluída: 8 vídeos dissecados em `PAUTAS.md` (thumbnails, títulos, hooks, 20 fórmulas e 10 pautas-semente) ✅
-  - Identidade visual concluída (Dia 5 ✅): peças SVG geradas em `assets/identidade/` (logo 800x800, banner 2560x1440 com área segura de 1546x423, marca d'água 150x150, template de thumbnail 1280x720 e overlay de Shorts 1080x1920) ✅
+  - Identidade visual concluída (Dia 5 ✅): peças geradas em `assets/identidade/` (logo, banner, marca d'água, template de thumbnail e Shorts) ✅
+  - Otimização do canal realizada no YouTube Studio (Dia 6 ✅): logo, banner, marca d'água, descrição ("Sobre"), palavras-chave e padrões de envio salvos com sucesso ✅
 
 ## 💰 Meus números rumo ao YPP
 
@@ -35,8 +36,8 @@ Legenda: ⬜ pendente · 🔄 em andamento · ✅ concluído
 - ✅ **Dia 3** — Posicionamento: quem é o canal e por que alguém assiste _(⏱ 45 min)_
 - ✅ **Dia 4** — Nome, @handle e identidade verbal _(⏱ 45 min)_
 - ✅ **Dia 5** — Identidade visual: logo, paleta e banner _(⏱ 75 min)_
-- 🔄 **Dia 6** — Criar e otimizar o canal na conta escolhida _(⏱ 60 min)_
-- ⬜ **Dia 7** — Regras do jogo: diretrizes e configurações _(⏱ 60 min)_
+- ✅ **Dia 6** — Criar e otimizar o canal na conta escolhida _(⏱ 60 min)_
+- 🔄 **Dia 7** — Regras do jogo: diretrizes e configurações _(⏱ 60 min)_
 
 ## Fase 2 — Sistema de produção (Dias 8–21)
 
